@@ -1,0 +1,32 @@
+// // Import the 'pg' library
+// import { Client } from 'pg';
+
+// // PostgreSQL connection configuration
+// const client = new Client({
+//   host: process.env.HOST || 'localhost',       // Hostname of the PostgreSQL server
+//   port: process.env.PORT ||5432,              // Default PostgreSQL port
+//   user: process.env.USER || 'my_user',         // Database username
+//   password: process.env.PASSWORD ||'my_password', // Database password
+//   database: process.env.DATABASE || 'my_database', // Name of the database
+// });
+
+// export default client;
+
+import { Pool } from "pg";
+
+const pool = new Pool({
+ host: process.env.DB_HOST || 'localhost',       // Hostname of the PostgreSQL server
+  port: process.env.DB_PORT ||5432,              // Default PostgreSQL port
+  user: process.env.DB_USER || 'postgres',         // Database username
+  password: process.env.DB_PASSWORD ||'sarb1928', // Database password
+  database: process.env.DB_DATABASE || 'HmmBro', // Name of the database
+  max: 20, // number of clients in pool
+  idleTimeoutMillis: 30000, // close idle clients after 30s
+  connectionTimeoutMillis: 2000, // return error after 2s if no connection
+});
+
+export default pool;
+
+// Example query
+// const result = await pool.query("SELECT * FROM products");
+// console.log(result.rows);
