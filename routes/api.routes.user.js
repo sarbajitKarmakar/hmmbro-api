@@ -1,12 +1,11 @@
 import express from 'express';
-import { createUser } from '../controller/app.users.js';
+import { createUser,getUser } from '../controller/api.controller.user.js';
 
 
 const router = express.Router();
 
 router.route('/')
-    .get(async (req, res) => {
-    })
+    .get( getUser )
 
     .post( createUser )
 

@@ -1,6 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import users from './routes/api.user.js';
+import users from './routes/api.routes.user.js';
 import apiAuthenticator from './middleware/apiAuthenticator.js';
 // import pool from './model/connection'
 
