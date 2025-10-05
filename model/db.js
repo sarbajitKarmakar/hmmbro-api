@@ -25,7 +25,21 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000, // return error after 2s if no connection
 });
 
+const getAllUsersQuery = async () => {
+  const res = await pool.query('SELECT * FROM users');
+  return res.rows;
+}
+
+const insertNewUserQuery = async (username, email, password, phone, pic) => {
+  await pool.query('INSERT INTO users (username, email, password,phone, pic) VALUES ($1, $2, $3, $4, $5)', [username, email, password, phone, pic]);
+}
+
 export default pool;
+
+export { 
+  getAllUsersQuery,
+  insertNewUserQuery
+};
 
 // Example query
 // const result = await pool.query("SELECT * FROM products");

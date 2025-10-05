@@ -1,5 +1,5 @@
 import express from 'express';
-import { createUser,getUser } from '../controller/api.controller.user.js';
+import { createUser,getUser,getAllUser } from '../controller/api.controller.user.js';
 
 
 const router = express.Router();
@@ -21,6 +21,8 @@ router.route('/')
         console.log(res.body);
     })
 
-
+    // getting all user details
+router.route('all')
+    .get(getAllUser)
 
     export default router;
