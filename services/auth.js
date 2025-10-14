@@ -22,6 +22,6 @@ const verifyToken = (token) => {
     } catch (err) {
         return null;
     }
-
 }
+
 export { generateToken,verifyToken };

@@ -1,4 +1,5 @@
-import {getAllUsersQuery, insertNewUserQuery, findUserByUsernameQuery} from '../model/db.js';
+import { getAllUsersQuery, insertNewUserQuery, findUserByUsernameQuery } from '../model/db.js';
+import { generateToken } from '../services/auth.js';
 
 const getAllUser = async(req, res) =>{
     try {
@@ -23,11 +24,12 @@ const createUser = async(req, res) => {
 }
 
 const getUser = async(req, res) => {
-    const userName = req.query.username;
+    const email = req.body.email;
     try {
-        const user = await findUserByUsernameQuery(userName);
+        const user = await findUserByUsernameQuery(email);
+        const token = generateToken(user);
         if(user){
-            return res.json(user);
+            return res.json(token);
         }else{
             return res.status(404).json("User not found");
         }

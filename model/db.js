@@ -34,8 +34,8 @@ const insertNewUserQuery = async (username, email, password, phone, pic) => {
   await pool.query('INSERT INTO users (username, email, password,phone, pic) VALUES ($1, $2, $3, $4, $5)', [username, email, password, phone, pic]);
 }
 
-const findUserByUsernameQuery = async (username) => {
-  const res = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+const findUserByUsernameQuery = async (email) => {
+  const res = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
   return res.rows[0];
 }
 
