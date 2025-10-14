@@ -22,7 +22,7 @@ router.route('/')
     })
 
     // getting all user details
-router.route('all')
+router.route('/all')
     .get(getAllUser)
 
     export default router;

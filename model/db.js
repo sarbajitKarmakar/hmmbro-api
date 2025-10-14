@@ -34,11 +34,17 @@ const insertNewUserQuery = async (username, email, password, phone, pic) => {
   await pool.query('INSERT INTO users (username, email, password,phone, pic) VALUES ($1, $2, $3, $4, $5)', [username, email, password, phone, pic]);
 }
 
+const findUserByUsernameQuery = async (username) => {
+  const res = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+  return res.rows[0];
+}
+
 export default pool;
 
 export { 
   getAllUsersQuery,
-  insertNewUserQuery
+  insertNewUserQuery ,
+  findUserByUsernameQuery,
 };
 
 // Example query
