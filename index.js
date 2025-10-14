@@ -2,7 +2,10 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import users from './routes/api.routes.user.js';
 import apiAuthenticator from './middleware/apiAuthenticator.js';
+import dotenv from "dotenv";
 // import pool from './model/connection'
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
