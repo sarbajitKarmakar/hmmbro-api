@@ -13,7 +13,7 @@ const hashPassword = async (plainPassword) => {
 };
 
 // Function to verify a password
-verifyPassword = async (plainPassword, hashedPassword) => {
+const verifyPassword = async (plainPassword, hashedPassword) => {
   try {
     const match = await bcrypt.compare(plainPassword, hashedPassword);
     return match;
