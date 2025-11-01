@@ -4,6 +4,7 @@ const secret = process.env.JWT_SECRET || 'your_jwt_secret';
 
 const generateToken = (user) => {
     const payload = {
+        id: user.id,
         email: user.email,
         username: user.username,
         phone: user.phone,
@@ -16,10 +17,15 @@ const generateToken = (user) => {
 
 }
 
-const verifyToken = (token) => {
+const verifyToken =  (token) => {
     try {
-        return jwt.verify(token, secret);
+        const verify = jwt.verify(token, secret);
+        // console.log(verify);
+        
+        return verify;
     } catch (err) {
+        console.log("verification failed . err:- " + err);
+        
         return null;
     }
 }

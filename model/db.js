@@ -15,10 +15,10 @@
 import { Pool } from "pg";
 
 const pool = new Pool({
- host: process.env.DB_HOST || 'localhost',       // Hostname of the PostgreSQL server
-  port: process.env.DB_PORT ||5432,              // Default PostgreSQL port
+  host: process.env.DB_HOST || 'localhost',       // Hostname of the PostgreSQL server
+  port: process.env.DB_PORT || 5432,              // Default PostgreSQL port
   user: process.env.DB_USER || 'postgres',         // Database username
-  password: process.env.DB_PASSWORD ||'sarb1928', // Database password
+  password: process.env.DB_PASSWORD || 'sarb1928', // Database password
   database: process.env.DB_DATABASE || 'HmmBro', // Name of the database
   max: 20, // number of clients in pool
   idleTimeoutMillis: 30000, // close idle clients after 30s
@@ -39,14 +39,36 @@ const findUserByUsernameQuery = async (email) => {
   return res.rows[0];
 }
 
+const updateUserQuery = async (userId, fields, values) => {
+  // console.log([...values,userId]);
+  
+  const update = await pool.query(`UPDATE users 
+   SET ${fields.join(', ')} 
+   WHERE id = $${values.length + 1}
+   RETURNING *;`,
+    [...values, userId]);
+  return update.rows[0];
+}
+
+const deactivateAccQuery = async (id) =>{
+  await pool.query(
+  `UPDATE users 
+   SET active = false 
+   WHERE id = $1 
+   RETURNING *;`,
+  [id]
+);
+}
 
 
 export default pool;
 
-export { 
+export {
   getAllUsersQuery,
-  insertNewUserQuery ,
+  insertNewUserQuery,
   findUserByUsernameQuery,
+  updateUserQuery,
+  deactivateAccQuery
 };
 
 // Example query
