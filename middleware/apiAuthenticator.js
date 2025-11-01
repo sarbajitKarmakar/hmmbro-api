@@ -1,10 +1,8 @@
 function apiAuthenticator(req, res, next) {
-  const apiKey = req.header('x-api-key'); // Get API key from header
+  const apiKey = req.header('x-api-key'); 
 
-  // Define your valid API key(s)
-  const validApiKey = process.env.API_KEY || 'my-secret-api-key'; // Better to use environment variable
+  const validApiKey = process.env.API_KEY || 'my-secret-api-key';
 
-  // Check if API key is provided and valid
   if (!apiKey) {
     return res.status(401).json({ error: 'API key missing' });
   }
@@ -13,7 +11,6 @@ function apiAuthenticator(req, res, next) {
     return res.status(403).json({ error: 'Invalid API key' });
   }
 
-  // If valid, continue to the next middleware or route
   next();
 }
 

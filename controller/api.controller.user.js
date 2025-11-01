@@ -47,8 +47,16 @@ const getUser = async (req, res) => {
 
 }
 
+
+const specificUpdateUser = (req, res) =>{
+    
+}
+
+
 export {
     getAllUser,
     createUser,
     getUser,
+    updateUser, 
+    specificUpdateUser,
 };
