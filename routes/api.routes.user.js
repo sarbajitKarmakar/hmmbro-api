@@ -1,7 +1,7 @@
 import express from 'express';
-import { createUser, getUser, getAllUser, specificUpdateUser, deactivateAcc } from '../controller/api.controller.user.js';
+import { createUser, getUser, specificUpdateUser } from '../controller/api.controller.user.js';
+import { deactivateAcc } from '../controller/api.controller.common.js';
 import authenticateUser from '../middleware/authenticateUser.js'
-import checkAdmin from '../middleware/checkAdmin.js';
 
 
 const router = express.Router();
@@ -20,9 +20,7 @@ router.route('/:id')
 
 
 
-// getting all user details(admin)
-router.route('/all')
-    .get(authenticateUser, checkAdmin, getAllUser)
+
 
 
 export default router;

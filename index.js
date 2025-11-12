@@ -1,8 +1,13 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import users from './routes/api.routes.user.js';
-import apiAuthenticator from './middleware/apiAuthenticator.js';
 import dotenv from "dotenv";
+
+import users from './routes/api.routes.user.js';
+import admins from './routes/api.routes.admin.js';
+
+import apiAuthenticator from './middleware/apiAuthenticator.js';
+import authenticateUserddd from './middleware/authenticateUser.js';
+import checkAdmin from './middleware/checkAdmin.js';
 // import pool from './model/connection'
 
 dotenv.config();
@@ -18,14 +23,15 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Example route
 app.get('/', (req, res) => {
-  
   res.send('Hello, world!');
 });
 
 
 app.use('/api/user',apiAuthenticator, users); //protected route with apiAuthenticator middleware
 
+app.use('/api/admin/user', apiAuthenticator, authenticateUserddd, checkAdmin, admins);
 
+app.use('/api/products')
 
   
 

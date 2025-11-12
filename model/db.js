@@ -19,14 +19,14 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,              // Default PostgreSQL port
   user: process.env.DB_USER || 'postgres',         // Database username
   password: process.env.DB_PASSWORD || 'sarb1928', // Database password
-  database: process.env.DB_DATABASE || 'HmmBro', // Name of the database
+  database: process.env.DB|| 'HmmBro', // Name of the database
   max: 20, // number of clients in pool
   idleTimeoutMillis: 30000, // close idle clients after 30s
   connectionTimeoutMillis: 2000, // return error after 2s if no connection
 });
 
-const getAllUsersQuery = async () => {
-  const res = await pool.query('SELECT * FROM users');
+const getAllUsersQuery = async (limit) => {
+  const res = await pool.query('SELECT * FROM users LIMIT $1', [limit]);
   return res.rows;
 }
 
@@ -60,6 +60,25 @@ const deactivateAccQuery = async (id) =>{
 );
 }
 
+const activateAccQuery = async (id) =>{
+  await pool.query(
+  `UPDATE users 
+   SET active = true 
+   WHERE id = $1 
+   RETURNING *;`,
+  [id]
+);
+}
+
+const getSpecificUserQuery = async (id) => {
+  const res = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+  return res.rows[0];
+}
+
+const deleteUserQuery = async (id) => {
+  await pool.query('DELETE FROM users WHERE id = $1', [id]);
+}
+
 
 export default pool;
 
@@ -68,7 +87,10 @@ export {
   insertNewUserQuery,
   findUserByUsernameQuery,
   updateUserQuery,
-  deactivateAccQuery
+  deactivateAccQuery,
+  activateAccQuery,
+  getSpecificUserQuery,
+  deleteUserQuery
 };
 
 // Example query

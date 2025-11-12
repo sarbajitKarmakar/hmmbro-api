@@ -1,17 +1,15 @@
-import { getAllUsersQuery, insertNewUserQuery, findUserByUsernameQuery, updateUserQuery,deactivateAccQuery } from '../model/db.js';
+import { 
+    insertNewUserQuery, 
+    findUserByUsernameQuery, 
+    updateUserQuery,
+} from '../model/db.js';
+
 import { generateToken } from '../services/auth.js';
-import { hashPassword, verifyPassword } from '../services/hashPass.js';
 
-const getAllUser = async (req, res) => {
-    try {
-        const allUser = await getAllUsersQuery();
-        // console.log(allUser);
-
-        return res.json(allUser);
-    } catch (error) {
-        return res.status(500).json("Error fetching users , " + error);
-    }
-}
+import { 
+    hashPassword, 
+    verifyPassword 
+} from '../services/hashPass.js';
 
 const createUser = async (req, res) => {
     const { username, email, password, phone, pic } = req.body;
@@ -49,7 +47,6 @@ const getUser = async (req, res) => {
 
 }
 
-
 const specificUpdateUser = async (req, res) => {
     if(req.body.password) return res.status(403).json({ message: "Password change is not allowed from this endpoint" });
     if(req.user.role !== 'admin') return res.status(403).json({ message: "Don't have permission to change the role" });
@@ -74,26 +71,10 @@ const specificUpdateUser = async (req, res) => {
     }
 }
 
-const deactivateAcc = async (req, res) =>{
-    const id = req.params.id;
-    console.log(id, req.user.id);
-    console.log(req.user.role);
-    
-    console.log(id != req.user.id , req.user.role !== 'admin');
-    
-    if (id != req.user.id && req.user.role !== 'admin') return res.status(403).json({message: "Unauthorized to deactive an account"})
-    try {
-        await deactivateAccQuery(id);
-        return res.status(200).json({message: 'Account Deactivated'})
-    } catch (error) {
-        return res.status(500).json("Error deactivating user , " + error)
-    }
-}
+
 
 export {
-    getAllUser,
     createUser,
     getUser,
     specificUpdateUser,
-    deactivateAcc
 };
