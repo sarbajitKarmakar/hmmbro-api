@@ -1,9 +1,12 @@
 import express from 'express';
+import authenticateUser from '../middleware/authenticateUser.js';
+import checkAdmin from '../middleware/checkAdmin.js';
 
 import { 
     getAllUser,
     getSpecificUser, 
     deleteUser,
+    searchUser,
 } from '../controller/api.controller.adminUser.js';
 
 import {
@@ -13,12 +16,15 @@ import {
 
 
 
+
 const router = express.Router();
 
 // getting all user by admin 
 router.route('/all')
     .get(getAllUser)
 
+    router.route('/search')
+        .get(authenticateUser, checkAdmin, searchUser);
     // get specific user details by admin
 router.route('/:id')
     .get(getSpecificUser)
@@ -29,7 +35,6 @@ router.route('/:id/deactivate')
     
 router.route('/:id/activate')
     .put(activateAcc);
-
 
 
 export default router;

@@ -83,6 +83,12 @@ const deleteUserQuery = async (id) => {
   await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [id]);
 }
 
+const searchUserQuery = async (value, limit, offset) =>{
+  const searchValue = await pool.query(`SELECT *, COUNT(*) OVER() AS total_count FROM users WHERE username ILIKE $1 LIMIT $2 OFFSET $3`, [`%${value}%`, limit, offset]);
+  
+  
+  return searchValue.rows;
+}
 
 // -------------------operations on user------------------- 
 
@@ -132,6 +138,12 @@ const unPublishProductQuery = async (id) => {
   return unPublished.rows[0];
 }
 
+const searchProductQuery = async (value, limit, offset) =>{
+  const searchValue = await pool.query(`SELECT p.id,p.name,p.price,p.prod_img,p.isdelete,p.stock,p.ispublish,v.variant_ml as ml,v.description, COUNT(*) OVER() AS total_count FROM products p LEFT JOIN variant v ON p.variant_id = v.id WHERE p.name ILIKE $1 ORDER BY p.name LIMIT $2 OFFSET $3`, [`%${value}%`, limit, offset]);
+  
+  
+  return searchValue.rows;
+}
 //-------------------operation on products-------------------
 
 
@@ -146,6 +158,7 @@ export {
   activateAccQuery,
   getSpecificUserQuery,
   deleteUserQuery,
+  searchUserQuery,
   getAllProductsQuery,
   getProductQuery,
   insertNewProductQuery,
@@ -153,7 +166,8 @@ export {
   deleteProductQuery,
   parmanentDeletedProductQuery,
   publishProductQuery,
-  unPublishProductQuery
+  unPublishProductQuery,
+  searchProductQuery
 };
 
 // Example query
