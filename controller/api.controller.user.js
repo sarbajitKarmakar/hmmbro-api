@@ -19,7 +19,7 @@ const createUser = async (req, res) => {
     }
     try {
         const data = await insertNewUserQuery(username, email, hashedPassword, phone, pic);
-        return res.json("User created successfully ");
+        return res.status(201).json({message:"User created successfully ", data});
     } catch (error) {
         // console.log(error);
         return res.status(500).json("Error creating user , " + error);
@@ -48,12 +48,14 @@ const getUser = async (req, res) => {
 }
 
 const specificUpdateUser = async (req, res) => {
+    // console.log(req.body.role);
+    
     if(req.body.password) return res.status(403).json({ message: "Password change is not allowed from this endpoint" });
-    if(req.user.role !== 'admin') return res.status(403).json({ message: "Don't have permission to change the role" });
+    if(req.body.role && req.user.role !== 'admin') return res.status(403).json({ message: "Don't have permission to change the role" });
     const feild = [];
     const value = [];
     let index = 1;
-    const id = req.body.id;
+    const id = req.user.id;
 
     for (const key in req.body) {
         if (key === 'id') continue;
@@ -65,7 +67,9 @@ const specificUpdateUser = async (req, res) => {
     
     try {
         const updatedUser = await updateUserQuery(id, feild, value);
-        return res.json(updatedUser);
+        if(!updatedUser) return res.status(404).json({ message: "User not found" });
+        
+        return res.status(200).json({message: "Updated",updatedUser});
     } catch (error) {
         return res.status(500).json("Error updating user , " + error);
     }

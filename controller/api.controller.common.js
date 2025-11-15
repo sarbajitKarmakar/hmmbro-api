@@ -26,7 +26,7 @@ const activateAcc = async (req, res) =>{
     // console.log(req.user.role);
     // console.log(id != req.user.id , req.user.role !== 'admin');
     
-    if (id != req.user.id && req.user.role !== 'admin') return res.status(403).json({message: "Unauthorized to deactive an account"})
+    if (id != req.user.id && req.user.role !== 'admin') return res.status(403).json({message: "Unauthorized to active an account"})
     try {
         const update = await activateAccQuery(id);
         return res.status(200).json({message: 'Account Activated',update})

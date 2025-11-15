@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 
 import users from './routes/api.routes.user.js';
 import admins from './routes/api.routes.admin.js';
+import products from './routes/api.routes.products.js';
 
 import apiAuthenticator from './middleware/apiAuthenticator.js';
 import authenticateUserddd from './middleware/authenticateUser.js';
@@ -31,7 +32,7 @@ app.use('/api/user',apiAuthenticator, users); //protected route with apiAuthenti
 
 app.use('/api/admin/user', apiAuthenticator, authenticateUserddd, checkAdmin, admins);
 
-app.use('/api/products')
+app.use('/api/products', apiAuthenticator, products);
 
   
 
