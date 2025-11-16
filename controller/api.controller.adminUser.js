@@ -1,0 +1,83 @@
+import {
+    getAllUsersQuery,
+    getSpecificUserQuery,
+    deleteUserQuery,
+    searchUserQuery
+} from '../model/db.js';
+
+
+const getAllUser = async (req, res) => {
+    try {
+        const limit = req.query.limit || 30; // default limit to 100 if not provided
+        const page = req.query.page || 1; // default page to 1 if not provided
+        const offset = (page - 1) * limit;
+        const allUser = await getAllUsersQuery(limit, offset);
+        const pageCount = Math.ceil(allUser[0].total_count / limit)
+        // console.log("allUser");
+
+        return res.status(200).json({
+            page,
+            pageCount,
+            data: allUser
+        });
+    } catch (error) {
+        return res.status(500).json("Error fetching users , " + error);
+    }
+}
+
+const getSpecificUser = async (req, res) => {
+    const id = req.params.id;
+    // console.log("getSpecificUser");
+    
+    try {
+        const userDetails = await getSpecificUserQuery(id);
+        if (!userDetails) return res.status(404).json({ message: "User not found" });
+        return res.status(200).json({ message: "User Details Updated", userDetails });
+    } catch (error) {
+        console.log(error);
+        
+        return res.status(500).json("Error fetching users , " + error);
+    }
+}
+
+const deleteUser = async (req, res) => {
+    const id = req.params.id;
+    // console.log("deleteUser");
+    
+    try {
+        const deletedUser = await deleteUserQuery(id);
+        if (!deletedUser) return res.status(404).json({ message: "User not found" });
+        return res.json({ message: "User deleted successfully", deletedUser });
+    } catch (error) {
+        return res.status(500).json("Error deleting user , " + error);
+    }
+}
+
+const searchUser = async (req, res) => {
+    if (!req.query.value) return res.status(400).json({ message: "Please Sent any value in query to search" })
+    const value = req.query.value
+        .toString()
+        .trim()// remove all unicode leading spaces
+        .replace(/^["']|["']$/g, ""); //removing unwanted ""
+
+    const limit = req.query.limit || 30;
+    const page = req.query.page || 1;
+    const offset = (page - 1) * limit;
+    // console.log("searchUser");
+    
+    try {
+        const searchedVaule = await searchUserQuery(value, limit, offset);
+        const pageCount = Math.ceil(searchedVaule[0].total_count / limit);
+        res.status(200).json({pageCount,searchedVaule})
+    } catch (error) {
+        console.log(`Error occure in search user :- ${error}`);
+        return res.status(500).json("Error in search user")
+    }
+}
+
+export {
+    getAllUser,
+    getSpecificUser,
+    deleteUser,
+    searchUser
+}

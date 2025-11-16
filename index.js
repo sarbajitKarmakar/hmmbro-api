@@ -1,5 +1,18 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import dotenv from "dotenv";
+
+import users from './routes/api.routes.user.js';
+import admins from './routes/api.routes.admin.js';
+import products from './routes/api.routes.products.js';
+
+import apiAuthenticator from './middleware/apiAuthenticator.js';
+import authenticateUserddd from './middleware/authenticateUser.js';
+import checkAdmin from './middleware/checkAdmin.js';
+// import pool from './model/connection'
+
+dotenv.config();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -8,12 +21,20 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+
 // Example route
 app.get('/', (req, res) => {
-    
-    res.send('Hello, world!');
+  res.send('Hello, world!');
 });
 
+
+app.use('/api/user',apiAuthenticator, users); //protected route with apiAuthenticator middleware
+
+app.use('/api/admin/user', apiAuthenticator, authenticateUserddd, checkAdmin, admins);
+
+app.use('/api/products', apiAuthenticator, products);
+
+  
 
 // Start the server
 app.listen(PORT, () => {
