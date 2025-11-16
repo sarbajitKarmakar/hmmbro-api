@@ -12,7 +12,7 @@
 
 // export default client;
 
-import { Pool } from "pg";
+// import { Pool } from "pg";
 
 // const pool = new Pool({
 //   host: process.env.DB_HOST || 'localhost',       // Hostname of the PostgreSQL server
