@@ -15,7 +15,6 @@ A secure, scalable, production-ready **RESTful API backend** built with **Node.j
 
 ## 📁 Project structure (visual)
 
-![Folder structure](/mnt/data/d02f7b61-3db5-4848-ad06-0c13376b341d.png)
 
 ```
 hmmBro-backend-server/
