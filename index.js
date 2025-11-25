@@ -14,12 +14,12 @@ import checkAdmin from './middleware/checkAdmin.js';
 
 dotenv.config();
 
-app.use(cors()); //to be update
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 
 // Body parser middleware
+app.use(cors()); //to be update
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
