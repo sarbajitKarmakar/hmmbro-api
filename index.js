@@ -1,6 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import dotenv from "dotenv";
+import cors from 'cors';
 
 import users from './routes/api.routes.user.js';
 import admins from './routes/api.routes.admin.js';
@@ -18,6 +19,7 @@ const PORT = process.env.PORT || 3000;
 
 
 // Body parser middleware
+app.use(cors()); //to be update
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
