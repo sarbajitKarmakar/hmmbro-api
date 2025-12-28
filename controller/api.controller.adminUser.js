@@ -13,7 +13,8 @@ const getAllUser = async (req, res) => {
         const offset = (page - 1) * limit;
         const allUser = await getAllUsersQuery(limit, offset);
         const pageCount = Math.ceil(Number(allUser[0].total_count) / limit);
-        console.log(pageCount);
+       
+        // console.log(pageCount);
 
         return res.status(200).json({
             page,
@@ -36,7 +37,7 @@ const getSpecificUser = async (req, res) => {
     } catch (error) {
         console.log(error);
         
-        return res.status(500).json("Error fetching users , " + error);
+        return res.status(500).json("Error fetching users details , " + error);
     }
 }
 

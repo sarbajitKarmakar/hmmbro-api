@@ -31,10 +31,10 @@ router.route('/:id')
     .delete(deleteUser);
 
 router.route('/:id/deactivate')
-    .put(deactivateAcc);
+    .post(deactivateAcc);
     
 router.route('/:id/activate')
-    .put(activateAcc);
+    .post(activateAcc);
 
 
 export default router;

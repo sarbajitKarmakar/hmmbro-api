@@ -56,7 +56,7 @@ const pool = new Pool(config);
 // ------------------operations on user ------------------
 
 const getAllUsersQuery = async (limit, offset) => {
-  const res = await pool.query('SELECT u.id, u.username, u.email, u.phone, u.active, u.role, c.total_count FROM (SELECT * FROM users WHERE role = $3 ORDER BY id DESC LIMIT $1 OFFSET $2) u CROSS JOIN (SELECT COUNT(*) AS total_count  FROM users WHERE role = $3) c;', [limit, offset, 'user']);
+  const res = await pool.query('SELECT u.id, u.username, u.email, u.phone, u.pic, c.total_count FROM (SELECT * FROM users WHERE role = $3 ORDER BY id DESC LIMIT $1 OFFSET $2) u CROSS JOIN (SELECT COUNT(*) AS total_count  FROM users WHERE role = $3) c;', [limit, offset, 'user']);
   return res.rows;
 }
 
@@ -102,7 +102,7 @@ const activateAccQuery = async (id) => {
 }
 
 const getSpecificUserQuery = async (id) => {
-  const res = await pool.query('SELECT * FROM users WHERE id = $1 RETURNING *', [id]);
+  const res = await pool.query('SELECT id,username,email,phone,pic,role,active FROM users WHERE id = $1', [id]);
   return res.rows[0];
 }
 
