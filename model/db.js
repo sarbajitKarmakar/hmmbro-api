@@ -56,7 +56,7 @@ const pool = new Pool(config);
 // ------------------operations on user ------------------
 
 const getAllUsersQuery = async (limit, offset) => {
-  const res = await pool.query('SELECT *, COUNT(*) OVER() AS table_count FROM users LIMIT $1 OFFSET $2', [limit, offset]);
+  const res = await pool.query('SELECT u.id, u.username, u.email, u.phone, u.active, u.role, c.total_count FROM (SELECT * FROM users WHERE role = $3 ORDER BY id DESC LIMIT $1 OFFSET $2) u CROSS JOIN (SELECT COUNT(*) AS total_count  FROM users WHERE role = $3) c;', [limit, offset, 'user']);
   return res.rows;
 }
 
