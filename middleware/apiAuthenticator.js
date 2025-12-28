@@ -1,7 +1,7 @@
 function apiAuthenticator(req, res, next) {
-  const apiKey = req.header('x-api-key'); 
-
   const validApiKey = process.env.API_KEY || 'my-secret-api-key';
+  
+  const apiKey = req.header('x-api-key'); 
 
   if (!apiKey) {
     return res.status(401).json({ error: 'API key missing' });

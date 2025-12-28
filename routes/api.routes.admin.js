@@ -24,7 +24,7 @@ router.route('/all')
     .get(getAllUser)
 
     router.route('/search')
-        .get(authenticateUser, checkAdmin, searchUser);
+        .get(authenticateUser, checkAdmin, searchUser); // to be checked 
     // get specific user details by admin
 router.route('/:id')
     .get(getSpecificUser)

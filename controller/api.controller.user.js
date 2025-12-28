@@ -27,7 +27,7 @@ const createUser = async (req, res) => {
 }
 
 const getUser = async (req, res) => {
-    const email = req.body.email;
+    const email = req.body.email.trim().toLowerCase();
     try {
         const user = await findUserByUsernameQuery(email);
         if(!user.active) return res.status(403).json({ message: "This account is deactivated" });
