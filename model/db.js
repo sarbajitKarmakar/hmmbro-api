@@ -55,13 +55,14 @@ const pool = new Pool(config);
 
 // ------------------operations on user ------------------
 
+
 const getAllUsersQuery = async (limit, offset) => {
   const res = await pool.query('SELECT u.id, u.username, u.email, u.phone, u.pic, c.total_count FROM (SELECT * FROM users WHERE role = $3 ORDER BY id DESC LIMIT $1 OFFSET $2) u CROSS JOIN (SELECT COUNT(*) AS total_count  FROM users WHERE role = $3) c;', [limit, offset, 'user']);
   return res.rows;
 }
 
 const insertNewUserQuery = async (username, email, password, phone, pic) => {
-  const insertedUser = await pool.query('INSERT INTO users (username, email, password,phone, pic) VALUES ($1, $2, $3, $4, $5) RETURNING *', [username, email, password, phone, pic]);
+  const insertedUser = await pool.query('INSERT INTO users (username, email, password,phone, pic) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, email, phone, pic', [username, email, password, phone, pic]);
   return insertedUser.rows[0];
 }
 
@@ -107,11 +108,29 @@ const getSpecificUserQuery = async (id) => {
 }
 
 const deleteUserQuery = async (id) => {
-  await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [id]);
+  const res = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [id]);
+  return res.rows[0];
 }
 
 const searchUserQuery = async (value, limit, offset) =>{
-  const searchValue = await pool.query(`SELECT *, COUNT(*) OVER() AS total_count FROM users WHERE username ILIKE $1 LIMIT $2 OFFSET $3`, [`%${value}%`, limit, offset]);
+  const searchValue = await pool.query(`SELECT
+  id,
+  username,
+  email,
+  phone,
+  active,
+  role,
+  COUNT(*) OVER() AS total_count
+FROM users
+ WHERE role = 'user'
+AND (
+  phone ILIKE $1 OR
+  CAST(id AS TEXT) ILIKE $1 OR
+  username ILIKE $1 OR
+  email ILIKE $1
+)
+ORDER BY id DESC
+LIMIT $2 OFFSET $3;`, [`%${value}%`, limit, offset]);
   
   
   return searchValue.rows;
@@ -133,8 +152,35 @@ const getProductQuery = async (id) => {
 }
 
 const insertNewProductQuery = async (name, price, prod_img, status, isdelete, stock, variant_id) => {
-  const instertedValue = await pool.query('INSERT INTO products (name, price, prod_img, status, isdelete, stock, variant_id) VALUES ($1, $2, $3, $4, $5) RETURNING *', [name, price, prod_img, status, isdelete, stock, variant_id]);
-  return instertedValue.rows[0];
+  // const instertedValue = await pool.query('INSERT INTO products (name, price, prod_img, status, isdelete, stock, variant_id) VALUES ($1, $2, $3, $4, $5) RETURNING *', [name, price, prod_img, status, isdelete, stock, variant_id]);
+  const client = pool.connect()
+  try{
+    await client.query('BEGIIN');
+    const productResult = await client.query(
+      `INSERT INTO products (name, prod_img, isdelete)
+       VALUES ($1, $2, $3)
+       RETURNING id`,
+      [name, prod_img, isdelete]
+    );
+
+    const productId = productResult.rows[0].id;
+
+    await client.query(
+      `INSERT INTO product_variants (product_id, variant_id,  price, stock, status, sku)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [productId, variant_id, price, stock, status, sku]
+    );
+
+     await client.query('COMMIT');
+
+  }catch (error){
+     await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  return ;
 }
 
 const updateProductQuery = async (id, feild, value) => {

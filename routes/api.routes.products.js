@@ -20,7 +20,7 @@ const router = express.Router();
 
 
 router.route('/')
-    .get(getProducts)  //get all products and also specific products by sending different query
+    .get(getProducts)  //get all products and also specific products by sending id in query
     .post(authenticateUser, checkAdmin, insertNewProduct); //insert new product (admin only)
 
 router.route('/search')

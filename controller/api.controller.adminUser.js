@@ -61,18 +61,19 @@ const searchUser = async (req, res) => {
         .trim()// remove all unicode leading spaces
         .replace(/^["']|["']$/g, ""); //removing unwanted ""
 
-    const limit = req.query.limit || 30;
-    const page = req.query.page || 1;
+    const limit = Number(req.query.limit) || 30;
+    const page = Number(req.query.page) || 1;
     const offset = (page - 1) * limit;
-    // console.log("searchUser");
+    // console.log(value);
     
     try {
         const searchedVaule = await searchUserQuery(value, limit, offset);
-        const pageCount = Math.ceil(searchedVaule[0].total_count / limit);
-        res.status(200).json({pageCount,searchedVaule})
+        if (searchedVaule.length === 0) return res.status(404).json({ message: "No user found" });
+        const pageCount = Math.ceil(Number(searchedVaule[0].total_count) / limit);
+        res.status(200).json({page,pageCount,searchedVaule})
     } catch (error) {
-        console.log(`Error occure in search user :- ${error}`);
-        return res.status(500).json("Error in search user")
+        // console.log(`Error occure in search user :- ${error}`);
+        return res.status(500).json("Error in search user: " + error);
     }
 }
 

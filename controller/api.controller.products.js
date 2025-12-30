@@ -49,13 +49,14 @@ const getProducts = async (req, res) => {
 };
 
 const insertNewProduct = async (req, res) => {
-    const { name, price, prod_img, status, isdelete, stock, variant_id } = req.body;
+    // res.json({status:"ok"});
     try {
+        const { name, price, prod_img, status, isdelete, stock, variant_id } = req.body;
         const data = await insertNewProductQuery({ name, price, prod_img, status, isdelete, stock, variant_id });
         res.status(201).json({ message: "Product Created", data });
     } catch (error) {
         console.log(`Error occured to insert new Product :- ${error}`);
-        res.status(500).json({ error: 'Failed to create product' });
+        res.status(500).json({ error: 'Failed to create product: ' + error });
     }
 };
 
