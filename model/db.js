@@ -55,13 +55,14 @@ const pool = new Pool(config);
 
 // ------------------operations on user ------------------
 
+
 const getAllUsersQuery = async (limit, offset) => {
-  const res = await pool.query('SELECT *, COUNT(*) OVER() AS table_count FROM users LIMIT $1 OFFSET $2', [limit, offset]);
+  const res = await pool.query('SELECT u.id, u.username, u.email, u.phone, u.pic, c.total_count FROM (SELECT * FROM users WHERE role = $3 ORDER BY id DESC LIMIT $1 OFFSET $2) u CROSS JOIN (SELECT COUNT(*) AS total_count  FROM users WHERE role = $3) c;', [limit, offset, 'user']);
   return res.rows;
 }
 
 const insertNewUserQuery = async (username, email, password, phone, pic) => {
-  const insertedUser = await pool.query('INSERT INTO users (username, email, password,phone, pic) VALUES ($1, $2, $3, $4, $5) RETURNING *', [username, email, password, phone, pic]);
+  const insertedUser = await pool.query('INSERT INTO users (username, email, password,phone, pic) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, email, phone, pic', [username, email, password, phone, pic]);
   return insertedUser.rows[0];
 }
 
@@ -76,7 +77,7 @@ const updateUserQuery = async (userId, fields, values) => {
   const update = await pool.query(`UPDATE users 
    SET ${fields.join(', ')} 
    WHERE id = $${values.length + 1}
-   RETURNING *;`,
+   RETURNING username, pic, active;`,
     [...values, userId]);
   return update.rows[0];
 }
@@ -86,7 +87,7 @@ const deactivateAccQuery = async (id) => {
     `UPDATE users 
    SET active = false 
    WHERE id = $1 
-   RETURNING *;`,
+   RETURNING username, pic, active;`,
     [id]
   );
 }
@@ -102,16 +103,34 @@ const activateAccQuery = async (id) => {
 }
 
 const getSpecificUserQuery = async (id) => {
-  const res = await pool.query('SELECT * FROM users WHERE id = $1 RETURNING *', [id]);
+  const res = await pool.query('SELECT id,username,email,phone,pic,role,active FROM users WHERE id = $1', [id]);
   return res.rows[0];
 }
 
 const deleteUserQuery = async (id) => {
-  await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [id]);
+  const res = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [id]);
+  return res.rows[0];
 }
 
 const searchUserQuery = async (value, limit, offset) =>{
-  const searchValue = await pool.query(`SELECT *, COUNT(*) OVER() AS total_count FROM users WHERE username ILIKE $1 LIMIT $2 OFFSET $3`, [`%${value}%`, limit, offset]);
+  const searchValue = await pool.query(`SELECT
+  id,
+  username,
+  email,
+  phone,
+  active,
+  role,
+  COUNT(*) OVER() AS total_count
+FROM users
+ WHERE role = 'user'
+AND (
+  phone ILIKE $1 OR
+  CAST(id AS TEXT) ILIKE $1 OR
+  username ILIKE $1 OR
+  email ILIKE $1
+)
+ORDER BY id DESC
+LIMIT $2 OFFSET $3;`, [`%${value}%`, limit, offset]);
   
   
   return searchValue.rows;
@@ -123,18 +142,76 @@ const searchUserQuery = async (value, limit, offset) =>{
 
 // do joining with varient
 const getAllProductsQuery = async (limit, offset) => {
-  const res = await pool.query('SELECT p.id,p.name,p.price,p.prod_img,p.isdelete,p.stock,p.ispublish,v.variant_ml as ml,v.description, COUNT(*) OVER() AS total_count FROM products p LEFT JOIN variant v ON p.variant_id = v.id ORDER BY p.name LIMIT $1 OFFSET $2', [limit, offset]);
+  const res = await pool.query(`SELECT
+  p.id            AS product_id,
+  p.name          AS product_name,
+  pv.id           AS product_variant_id,
+  v.variant_ml,
+  pv.price,
+  pv.stock,
+  pv.sku,
+  pv.img_urls,
+  p.type
+FROM products p
+JOIN product_variants pv ON pv.product_id = p.id
+JOIN variant v ON v.id = pv.variant_id
+WHERE pv.isdelete = false;
+LIMIT $1 OFFSET $2
+`, [limit, offset]);
   return res.rows;
 }
 
 const getProductQuery = async (id) => {
-  const res = await pool.query('SELECT p.id,p.name,p.price,p.prod_img,p.isdelete,p.stock,p.ispublish,v.variant_ml as ml,v.description FROM products p LEFT JOIN variant v ON p.variant_id = v.id WHERE p.id = $1', [id])
+  const res = await pool.query(`SELECT 
+p.id as product_id,
+pv.id as provar_id,
+v.id as variant_id,
+p.name,
+p.type,
+pv.price,
+pv.stock,
+pv.sku,
+pv.img_urls,
+pv.ispublish,
+v.variant_ml as ml
+FROM product_variants pv 
+JOIN products p ON pv.product_id = p.id
+JOIN variant v ON pv.variant_id = v.id
+WHERE pv.id = $1
+ORDER BY p.name`, [id]);
   return res.rows[0];
 }
 
 const insertNewProductQuery = async (name, price, prod_img, status, isdelete, stock, variant_id) => {
-  const instertedValue = await pool.query('INSERT INTO products (name, price, prod_img, status, isdelete, stock, variant_id) VALUES ($1, $2, $3, $4, $5) RETURNING *', [name, price, prod_img, status, isdelete, stock, variant_id]);
-  return instertedValue.rows[0];
+  // const instertedValue = await pool.query('INSERT INTO products (name, price, prod_img, status, isdelete, stock, variant_id) VALUES ($1, $2, $3, $4, $5) RETURNING *', [name, price, prod_img, status, isdelete, stock, variant_id]);
+  const client = pool.connect()
+  try{
+    await client.query('BEGIIN');
+    const productResult = await client.query(
+      `INSERT INTO products (name, prod_img, isdelete)
+       VALUES ($1, $2, $3)
+       RETURNING id`,
+      [name, prod_img, isdelete]
+    );
+
+    const productId = productResult.rows[0].id;
+
+    await client.query(
+      `INSERT INTO product_variants (product_id, variant_id,  price, stock, status, sku)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [productId, variant_id, price, stock, status, sku]
+    );
+
+     await client.query('COMMIT');
+
+  }catch (error){
+     await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  return ;
 }
 
 const updateProductQuery = async (id, feild, value) => {
