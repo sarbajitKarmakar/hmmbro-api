@@ -77,7 +77,7 @@ const updateUserQuery = async (userId, fields, values) => {
   const update = await pool.query(`UPDATE users 
    SET ${fields.join(', ')} 
    WHERE id = $${values.length + 1}
-   RETURNING *;`,
+   RETURNING username, pic, active;`,
     [...values, userId]);
   return update.rows[0];
 }
@@ -87,7 +87,7 @@ const deactivateAccQuery = async (id) => {
     `UPDATE users 
    SET active = false 
    WHERE id = $1 
-   RETURNING *;`,
+   RETURNING username, pic, active;;`,
     [id]
   );
 }
@@ -142,12 +142,43 @@ LIMIT $2 OFFSET $3;`, [`%${value}%`, limit, offset]);
 
 // do joining with varient
 const getAllProductsQuery = async (limit, offset) => {
-  const res = await pool.query('SELECT p.id,p.name,p.price,p.prod_img,p.isdelete,p.stock,p.ispublish,v.variant_ml as ml,v.description, COUNT(*) OVER() AS total_count FROM products p LEFT JOIN variant v ON p.variant_id = v.id ORDER BY p.name LIMIT $1 OFFSET $2', [limit, offset]);
+  const res = await pool.query(`SELECT
+  p.id            AS product_id,
+  p.name          AS product_name,
+  pv.id           AS product_variant_id,
+  v.variant_ml,
+  pv.price,
+  pv.stock,
+  pv.sku,
+  pv.img_urls,
+  p.type
+FROM products p
+JOIN product_variants pv ON pv.product_id = p.id
+JOIN variant v ON v.id = pv.variant_id
+WHERE pv.isdelete = false;
+LIMIT $1 OFFSET $2
+`, [limit, offset]);
   return res.rows;
 }
 
 const getProductQuery = async (id) => {
-  const res = await pool.query('SELECT p.id,p.name,p.price,p.prod_img,p.isdelete,p.stock,p.ispublish,v.variant_ml as ml,v.description FROM products p LEFT JOIN variant v ON p.variant_id = v.id WHERE p.id = $1', [id])
+  const res = await pool.query(`SELECT 
+p.id as product_id,
+pv.id as provar_id,
+v.id as variant_id,
+p.name,
+p.type,
+pv.price,
+pv.stock,
+pv.sku,
+pv.img_urls,
+pv.ispublish,
+v.variant_ml as ml
+FROM product_variants pv 
+JOIN products p ON pv.product_id = p.id
+JOIN variant v ON pv.variant_id = v.id
+WHERE pv.id = $1
+ORDER BY p.name`, [id]);
   return res.rows[0];
 }
 

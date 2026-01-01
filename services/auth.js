@@ -6,11 +6,8 @@ const generateToken = (user) => {
     const payload = {
         id: user.id,
         email: user.email,
-        username: user.username,
         phone: user.phone,
-        pic: user.pic,
         role: user.role,
-        active: user.active,
     }
 
     return jwt.sign(payload, secret);
