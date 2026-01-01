@@ -21,7 +21,7 @@ const router = express.Router();
 router.route('/all')
     .get(getAllUser)
 
-    router.route('/search')
+router.route('/search')
         .get(searchUser);
     // get specific user details by admin
 router.route('/:id')

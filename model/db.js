@@ -87,7 +87,7 @@ const deactivateAccQuery = async (id) => {
     `UPDATE users 
    SET active = false 
    WHERE id = $1 
-   RETURNING username, pic, active;;`,
+   RETURNING username, pic, active;`,
     [id]
   );
 }
