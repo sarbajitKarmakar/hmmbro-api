@@ -20,7 +20,7 @@ const router = express.Router();
 
 
 router.route('/')
-    .get(getProducts)  //get all products and also specific products by sending different query
+    .get(authenticateUser, checkAdmin, getProducts)  //get all products and also specific products by sending id in query
     .post(authenticateUser, checkAdmin, insertNewProduct); //insert new product (admin only)
 
 router.route('/search')
@@ -40,6 +40,9 @@ router.route('/:id/publish')
 router.route('/:id/unpublish')
     .put(authenticateUser, checkAdmin, unPublishProduct);//uspublish product (admin only)
 
+// router.route('/variant')
+//     .get()
+//     .post(authenticateUser, checkAdmin,)
 
 
 export default router;

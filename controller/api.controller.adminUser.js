@@ -8,16 +8,17 @@ import {
 
 const getAllUser = async (req, res) => {
     try {
-        const limit = req.query.limit || 30; // default limit to 100 if not provided
-        const page = req.query.page || 1; // default page to 1 if not provided
+        const limit = Number(req.query.limit) || 30; // default limit to 100 if not provided
+        const page = Number(req.query.page) || 1; // default page to 1 if not provided
         const offset = (page - 1) * limit;
         const allUser = await getAllUsersQuery(limit, offset);
-        const pageCount = Math.ceil(allUser[0].total_count / limit)
-        // console.log("allUser");
+        const pageCount = Math.ceil(Number(allUser[0].total_count) / limit);
+       
+        // console.log(pageCount);
 
         return res.status(200).json({
             page,
-            pageCount,
+            pageCount:pageCount,
             data: allUser
         });
     } catch (error) {
@@ -36,7 +37,7 @@ const getSpecificUser = async (req, res) => {
     } catch (error) {
         console.log(error);
         
-        return res.status(500).json("Error fetching users , " + error);
+        return res.status(500).json("Error fetching users details , " + error);
     }
 }
 
@@ -60,18 +61,19 @@ const searchUser = async (req, res) => {
         .trim()// remove all unicode leading spaces
         .replace(/^["']|["']$/g, ""); //removing unwanted ""
 
-    const limit = req.query.limit || 30;
-    const page = req.query.page || 1;
+    const limit = Number(req.query.limit) || 30;
+    const page = Number(req.query.page) || 1;
     const offset = (page - 1) * limit;
-    // console.log("searchUser");
+    // console.log(value);
     
     try {
         const searchedVaule = await searchUserQuery(value, limit, offset);
-        const pageCount = Math.ceil(searchedVaule[0].total_count / limit);
-        res.status(200).json({pageCount,searchedVaule})
+        if (searchedVaule.length === 0) return res.status(404).json({ message: "No user found" });
+        const pageCount = Math.ceil(Number(searchedVaule[0].total_count) / limit);
+        res.status(200).json({page,pageCount,searchedVaule})
     } catch (error) {
-        console.log(`Error occure in search user :- ${error}`);
-        return res.status(500).json("Error in search user")
+        // console.log(`Error occure in search user :- ${error}`);
+        return res.status(500).json("Error in search user: " + error);
     }
 }
 
