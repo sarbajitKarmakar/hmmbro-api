@@ -13,7 +13,9 @@ import {
 
 const createUser = async (req, res) => {
     const { username, email, password, phone, pic } = req.body;
-    if (!email || !password || !username) {
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPhone = phone.trim();
+    if (!trimmedEmail || !password || !username) {
       return res.status(400).json({ message: "Missing fields" });
     }
     const hashedPassword = await hashPassword(password);
@@ -21,11 +23,11 @@ const createUser = async (req, res) => {
         return res.status(500).json("Error hashing password");
     }
     try {
-        const data = await insertNewUserQuery(username, email, hashedPassword, phone, pic);
+        const data = await insertNewUserQuery(username, trimmedEmail, hashedPassword, trimmedPhone, pic);
         return res.status(201).json({ message: "User created successfully ", data });
     } catch (error) {
         if (error.code === "23505") {
-            console.log(error.constraint);
+            // console.log(error.constraint);
             if (error.constraint === "email") {
                 return res.status(409).json({ message: "Email already exists" });
             }
@@ -48,8 +50,8 @@ const loginUser = async (req, res) => {
             if (!isPasswordValid) return res.status(401).json({ message: "Invalid password" });
             const token = generateToken(user);
             return res.json({
-                token,
                 message: "Login successful",
+                token,
                 data: {
                     username: user.username,
                     pic: user.pic,
