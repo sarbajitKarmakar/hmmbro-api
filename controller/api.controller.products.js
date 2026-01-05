@@ -10,6 +10,10 @@ import {
     searchProductQuery,
 } from "../model/db.js";
 
+import {
+    createProduct,
+} from "../services/product.service.js"
+
 const getProducts = async (req, res) => {
     if (req.query.id) {
         const id = req.query.id;
@@ -50,10 +54,12 @@ const getProducts = async (req, res) => {
 
 const insertNewProduct = async (req, res) => {
     // res.json({status:"ok"});
+    if (!req.body.productName && !req.body.productId) return res.status(400).json({ error: "Please provide productName or productId" })
     try {
-        const { name, price, prod_img, status, isdelete, stock, variant_id } = req.body;
-        const data = await insertNewProductQuery({ name, price, prod_img, status, isdelete, stock, variant_id });
-        res.status(201).json({ message: "Product Created", data });
+        await createProduct(req.body);
+        // const { name, price, prod_img, status, isdelete, stock, variant_id } = req.body;
+        // const data = await insertNewProductQuery({ name, price, prod_img, status, isdelete, stock, variant_id });
+        res.status(201).json({ message: "Product Created" });
     } catch (error) {
         console.log(`Error occured to insert new Product :- ${error}`);
         res.status(500).json({ error: 'Failed to create product: ' + error });
@@ -145,7 +151,7 @@ const searchProduct = async (req, res) => {
     try {
         const searchedVaule = await searchProductQuery(value, limit, offset);
         const pageCount = Math.ceil(searchedVaule[0].total_count / limit);
-        res.status(200).json({pageCount,searchedVaule});
+        res.status(200).json({ pageCount, searchedVaule });
     } catch (error) {
         console.log(`Error occure in searchProduct :- ${error}`);
         return res.status(500).json("Error in search Product")
