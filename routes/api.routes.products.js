@@ -24,11 +24,11 @@ router.route('/')
     .post(authenticateUser, checkAdmin, insertNewProduct); //insert new product (admin only)
 
 router.route('/search')
-    .get(authenticateUser, checkAdmin, searchProduct);
+    .post(authenticateUser, checkAdmin, searchProduct);
 
 router.route('/:id')
-.patch(authenticateUser, checkAdmin, updateProduct)//edit product (admin only)
-.delete(authenticateUser, checkAdmin, deleteProduct); //temporary delete product (admin only)
+    .patch(authenticateUser, checkAdmin, updateProduct)//edit product (admin only)
+    .delete(authenticateUser, checkAdmin, deleteProduct); //temporary delete product (admin only)
 
 router.route('/:id/parmanent')
     .delete(authenticateUser, checkAdmin, parmanentDeleteProduct); //parmanent delete product (admin only)

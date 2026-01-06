@@ -30,24 +30,24 @@ import { Pool } from "pg";
 
 const connectionString = process.env.DATABASE_URL;
 
-const config = connectionString 
-    ? { 
-        connectionString,
-        // Crucial for Render's managed PostgreSQL to work with Node.js
-        ssl: { rejectUnauthorized: false } 
-    } 
-    : {
-        // Your existing local fallback logic
-        host: process.env.DB_HOST || 'localhost',
-        port: process.env.DB_PORT || 5432,
-        user: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || 'sarb1928',
-        database: process.env.DB || 'HmmBro',
-        // Other pool settings...
-        max: 20, 
-        idleTimeoutMillis: 30000, 
-        connectionTimeoutMillis: 2000,
-    };
+const config = connectionString
+  ? {
+    connectionString,
+    // Crucial for Render's managed PostgreSQL to work with Node.js
+    ssl: { rejectUnauthorized: false }
+  }
+  : {
+    // Your existing local fallback logic
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'sarb1928',
+    database: process.env.DB || 'HmmBro',
+    // Other pool settings...
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  };
 
 const pool = new Pool(config);
 
@@ -66,8 +66,14 @@ const insertNewUserQuery = async (username, email, password, phone, pic) => {
   return insertedUser.rows[0];
 }
 
-const findUserByUsernameQuery = async (email) => {
+const findUserByEmailQuery = async (email) => {
   const res = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+  return res.rows[0];
+}
+
+const findUserByUserIdQuery = async (id) => {
+  console.log(id);
+  const res = await pool.query('SELECT id, role, active FROM users WHERE id = $1', [id]);
   return res.rows[0];
 }
 
@@ -112,7 +118,7 @@ const deleteUserQuery = async (id) => {
   return res.rows[0];
 }
 
-const searchUserQuery = async (value, limit, offset) =>{
+const searchUserQuery = async (value, limit, offset) => {
   const searchValue = await pool.query(`SELECT
   id,
   username,
@@ -131,8 +137,8 @@ AND (
 )
 ORDER BY id DESC
 LIMIT $2 OFFSET $3;`, [`%${value}%`, limit, offset]);
-  
-  
+
+
   return searchValue.rows;
 }
 
@@ -182,36 +188,25 @@ ORDER BY p.name`, [id]);
   return res.rows[0];
 }
 
-const insertNewProductQuery = async (name, price, prod_img, status, isdelete, stock, variant_id) => {
-  // const instertedValue = await pool.query('INSERT INTO products (name, price, prod_img, status, isdelete, stock, variant_id) VALUES ($1, $2, $3, $4, $5) RETURNING *', [name, price, prod_img, status, isdelete, stock, variant_id]);
-  const client = pool.connect()
-  try{
-    await client.query('BEGIIN');
-    const productResult = await client.query(
-      `INSERT INTO products (name, prod_img, isdelete)
-       VALUES ($1, $2, $3)
-       RETURNING id`,
-      [name, prod_img, isdelete]
-    );
+const insertNewProductQuery = async (client, productName, type) => {
+  const res = await client.query(
+    `INSERT INTO products (name, type)
+                   VALUES ($1, $2)
+                   RETURNING id`,
+    [productName, type]
+  );
 
-    const productId = productResult.rows[0].id;
+  return res.rows[0];
+}
 
-    await client.query(
-      `INSERT INTO product_variants (product_id, variant_id,  price, stock, status, sku)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [productId, variant_id, price, stock, status, sku]
-    );
-
-     await client.query('COMMIT');
-
-  }catch (error){
-     await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-
-  return ;
+const insertNewProductVariant = async (client, payload) => {
+  await client.query(
+    `INSERT INTO 
+    product_variants 
+    (product_id, variant_id, price, stock, sku, ispublish, img_urls)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    payload
+  );
 }
 
 const updateProductQuery = async (id, feild, value) => {
@@ -242,10 +237,10 @@ const unPublishProductQuery = async (id) => {
   return unPublished.rows[0];
 }
 
-const searchProductQuery = async (value, limit, offset) =>{
+const searchProductQuery = async (value, limit, offset) => {
   const searchValue = await pool.query(`SELECT p.id,p.name,p.price,p.prod_img,p.isdelete,p.stock,p.ispublish,v.variant_ml as ml,v.description, COUNT(*) OVER() AS total_count FROM products p LEFT JOIN variant v ON p.variant_id = v.id WHERE p.name ILIKE $1 ORDER BY p.name LIMIT $2 OFFSET $3`, [`%${value}%`, limit, offset]);
-  
-  
+
+
   return searchValue.rows;
 }
 //-------------------operation on products-------------------
@@ -256,7 +251,8 @@ export default pool;
 export {
   getAllUsersQuery,
   insertNewUserQuery,
-  findUserByUsernameQuery,
+  findUserByEmailQuery,
+  findUserByUserIdQuery,
   updateUserQuery,
   deactivateAccQuery,
   activateAccQuery,
@@ -266,6 +262,7 @@ export {
   getAllProductsQuery,
   getProductQuery,
   insertNewProductQuery,
+  insertNewProductVariant,
   updateProductQuery,
   deleteProductQuery,
   parmanentDeletedProductQuery,
