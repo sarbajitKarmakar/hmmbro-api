@@ -66,8 +66,14 @@ const insertNewUserQuery = async (username, email, password, phone, pic) => {
   return insertedUser.rows[0];
 }
 
-const findUserByUsernameQuery = async (email) => {
+const findUserByEmailQuery = async (email) => {
   const res = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+  return res.rows[0];
+}
+
+const findUserByUserIdQuery = async (id) => {
+  console.log(id);
+  const res = await pool.query('SELECT id, role, active FROM users WHERE id = $1', [id]);
   return res.rows[0];
 }
 
@@ -245,7 +251,8 @@ export default pool;
 export {
   getAllUsersQuery,
   insertNewUserQuery,
-  findUserByUsernameQuery,
+  findUserByEmailQuery,
+  findUserByUserIdQuery,
   updateUserQuery,
   deactivateAccQuery,
   activateAccQuery,

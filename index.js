@@ -6,9 +6,10 @@ import cors from 'cors';
 import users from './routes/api.routes.user.js';
 import admins from './routes/api.routes.admin.js';
 import products from './routes/api.routes.products.js';
+import auth from './routes/api.routes.auth.js';
 
 import apiAuthenticator from './middleware/apiAuthenticator.js';
-import authenticateUserddd from './middleware/authenticateUser.js';
+import authenticateUser from './middleware/authenticateUser.js';
 import checkAdmin from './middleware/checkAdmin.js';
 // import pool from './model/connection'
 
@@ -29,10 +30,11 @@ app.get('/', (req, res) => {
   res.send('Hello, world!');
 });
 
+app.use('/api/auth', apiAuthenticator, auth);
 
-app.use('/api/user',apiAuthenticator, users); //protected route with apiAuthenticator middleware
+app.use('/api/user',apiAuthenticator, users); 
 
-app.use('/api/admin/user', apiAuthenticator, authenticateUserddd, checkAdmin, admins);
+app.use('/api/admin/user', apiAuthenticator, authenticateUser, checkAdmin, admins);
 
 app.use('/api/products', apiAuthenticator, products);
 

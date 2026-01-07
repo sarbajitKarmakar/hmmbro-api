@@ -1,7 +1,6 @@
 import {
     getAllProductsQuery,
     getProductQuery,
-    insertNewProductQuery,
     updateProductQuery,
     deleteProductQuery,
     parmanentDeletedProductQuery,
@@ -57,8 +56,7 @@ const insertNewProduct = async (req, res) => {
     if (!req.body.productName && !req.body.productId) return res.status(400).json({ error: "Please provide productName or productId" })
     try {
         await createProduct(req.body);
-        // const { name, price, prod_img, status, isdelete, stock, variant_id } = req.body;
-        // const data = await insertNewProductQuery({ name, price, prod_img, status, isdelete, stock, variant_id });
+        
         res.status(201).json({ message: "Product Created" });
     } catch (error) {
         console.log(`Error occured to insert new Product :- ${error}`);

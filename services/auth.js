@@ -1,22 +1,29 @@
 import jwt from 'jsonwebtoken';
 
-const secret = process.env.JWT_SECRET || 'your_jwt_secret';
+const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET || 'your-256-bit-secret';
+const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET || 'your-512-bit-secret';
 
-const generateToken = (user) => {
+const generateAccessToken = (user) => {
     const payload = {
         id: user.id,
-        email: user.email,
-        phone: user.phone,
         role: user.role,
     }
 
-    return jwt.sign(payload, secret);
+    return jwt.sign(payload, accessTokenSecret, { expiresIn: '15m' });
+}
+
+const generateRefreshToken = (user) => {
+    const payload = {
+        id: user.id,
+    }
+
+    return jwt.sign(payload, refreshTokenSecret, { expiresIn: '7d' });
 
 }
 
-const verifyToken =  (token) => {
+const verifyAccessToken =  (token) => {
     try {
-        const verify = jwt.verify(token, secret);
+        const verify = jwt.verify(token, accessTokenSecret);
         // console.log(verify);
         
         return verify;
@@ -27,4 +34,22 @@ const verifyToken =  (token) => {
     }
 }
 
-export { generateToken,verifyToken };
+const verifyRefreshToken =  (token) => {
+    try {
+        const verify = jwt.verify(token, refreshTokenSecret);
+        // console.log(verify);
+        
+        return verify;
+    } catch (err) {
+        console.log("verification failed . err:- " + err);
+        
+        return null;
+    }
+}
+
+export { 
+    generateAccessToken,
+    generateRefreshToken,
+    verifyAccessToken,
+    verifyRefreshToken,
+ };
