@@ -70,9 +70,9 @@ const loginUser = async (req, res) => {
     const email = req.body.email.trim().toLowerCase();
     try {
         const user = await findUserByEmailQuery(email);
-        if (!user.active) return res.status(403).json({ message: "This account is deactivated" });
-
+        
         if (user) {
+            if (!user.active) return res.status(403).json({ message: "This account is deactivated" });
             const isPasswordValid = await verifyPassword(req.body.password, user.password);
             if (!isPasswordValid) return res.status(401).json({ message: "Invalid password" });
             const accessToken = generateAccessToken(user);
