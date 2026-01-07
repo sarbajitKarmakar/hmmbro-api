@@ -1,6 +1,6 @@
 import {
-    getAllProductsQuery,
-    getProductQuery,
+    getAllProductsAdminQuery,
+    getSpecificProductAdminQuery,
     updateProductQuery,
     deleteProductQuery,
     parmanentDeletedProductQuery,
@@ -19,7 +19,7 @@ const getProducts = async (req, res) => {
         console.log(id);
 
         try {
-            const product = await getProductQuery(id);
+            const product = await getSpecificProductAdminQuery(id);
             if (!product) return res.status(404).json({ error: 'Product not found' });
 
             return res.status(200).json(product);
@@ -36,7 +36,7 @@ const getProducts = async (req, res) => {
     const offset = (page - 1) * limit;
 
     try {
-        const products = await getAllProductsQuery(limit, offset)
+        const products = await getAllProductsAdminQuery(limit, offset)
         const pageCount = Math.ceil(products[0].total_count / limit)
         res.status(200).json({
             page,
@@ -56,32 +56,86 @@ const insertNewProduct = async (req, res) => {
     if (!req.body.productName && !req.body.productId) return res.status(400).json({ error: "Please provide productName or productId" })
     try {
         await createProduct(req.body);
-        
+
         res.status(201).json({ message: "Product Created" });
     } catch (error) {
-        console.log(`Error occured to insert new Product :- ${error}`);
+        // console.log(`Error occured to insert new Product :- ${error.code}`);
+
+            if (error.constraint === "unique_sku") {
+                return res.status(409).json({
+                    message: "SKU already exists. Please use a Unique SKU."
+                });
+            }
+
+            if(error.constraint ==="unique_product_variant_product_id_variant_id"){
+                return res.status(409).json({
+                    message: "The variant of this product is already exist"
+                })
+            }
+
+            if(error.constraint === "product_variants_product_id_fkey"){
+                return res.status(409).json({
+                    message: "The Product Doesn't Exist"
+                })
+            }
+
         res.status(500).json({ error: 'Failed to create product: ' + error });
     }
 };
 
 const updateProduct = async (req, res) => {
-    let feild = [];
-    let value = [];
-    let index = 1;
+
+    const PRODUCT_UPDATABLE_FEILDS = [
+        'name',
+        'isdelete',
+        'type',
+    ];
+
+
+
     const id = req.params.id;
-    for (const key in req.body) {
-        if (key === 'id') continue;
-        feild.push(`${key}=$${index}`)
-        value.push(req.body[key]);
-        index++
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ message: "Please provide fields to update" })
     }
+    if(req.body.id){
+        return res.status(400).json({ message: "Cannot update product id" })
+    }
+    const field = Object.keys(req.body).filter(key=> PRODUCT_UPDATABLE_FEILDS.includes(key));
+
+    const setClauses = field.map((key,i)=>(
+        `${key} = $${i+1}`
+    ) ).join(", ");
+    
+    if (field.length === 0) {
+        return res.status(400).json({ message: "No valid fields to update" })
+    }
+
+    const value = field.map(key=>req.body[key]);
+
     try {
-        const updatedProduct = await updateProductQuery(id, feild, value);
+        const updatedProduct = await updateProductQuery(id, setClauses, value);
         if (!updatedProduct) return res.status(404).json({ message: "Product not found" });
         return res.status(200).json({ message: "Product Updated Successfully", updatedProduct });
     } catch (error) {
-        console.log(`Error occured in update product section : ${error}`);
-        return res.status(500).json({ message: "Failed to update product" })
+        // console.log(`Error occured in update product section : ${error}`);
+        if (error.constraint === "unique_sku") {
+                return res.status(409).json({
+                    message: "SKU already exists. Please use a Unique SKU."
+                });
+            }
+
+            if(error.constraint ==="unique_product_variant_product_id_variant_id"){
+                return res.status(409).json({
+                    message: "The variant of this product is already exist"
+                })
+            }
+
+            if(error.constraint === "product_variants_product_id_fkey"){
+                return res.status(409).json({
+                    message: "The Product Doesn't Exist"
+                })
+            }
+        return res.status(500).json({ message: "Failed to update product:" + error  });
     }
 
 }

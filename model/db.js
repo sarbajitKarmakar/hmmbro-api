@@ -147,39 +147,42 @@ LIMIT $2 OFFSET $3;`, [`%${value}%`, limit, offset]);
 //-------------------operation on products-------------------
 
 // do joining with varient
-const getAllProductsQuery = async (limit, offset) => {
-  const res = await pool.query(`SELECT
-  p.id            AS product_id,
-  p.name          AS product_name,
-  pv.id           AS product_variant_id,
+const getAllProductsAdminQuery = async (limit, offset) => {
+  const res = await pool.query(`
+  SELECT 
+  p.id AS product_id,
+  pv.id AS product_variant_id,
+  v.id AS variant_id,
+  p.name AS product_name,
   v.variant_ml,
   pv.price,
   pv.stock,
   pv.sku,
   pv.img_urls,
-  p.type
+  p.type,
+  pv.ispublish
 FROM products p
 JOIN product_variants pv ON pv.product_id = p.id
 JOIN variant v ON v.id = pv.variant_id
-WHERE pv.isdelete = false;
-LIMIT $1 OFFSET $2
+WHERE pv.isdelete = false
+LIMIT $1 OFFSET $2;
 `, [limit, offset]);
   return res.rows;
 }
 
-const getProductQuery = async (id) => {
+const getSpecificProductAdminQuery = async (id) => {
   const res = await pool.query(`SELECT 
 p.id as product_id,
-pv.id as provar_id,
+pv.id as product_variant_id,
 v.id as variant_id,
 p.name,
 p.type,
+v.variant_ml as ml,
 pv.price,
 pv.stock,
 pv.sku,
 pv.img_urls,
-pv.ispublish,
-v.variant_ml as ml
+pv.ispublish
 FROM product_variants pv 
 JOIN products p ON pv.product_id = p.id
 JOIN variant v ON pv.variant_id = v.id
@@ -211,6 +214,14 @@ const insertNewProductVariant = async (client, payload) => {
 
 const updateProductQuery = async (id, feild, value) => {
   const updatedProduct = await pool.query(`UPDATE products 
+    SET ${feild.join(",")} WHERE id = $${value.length + 1}
+    RETURNING *`, [...value, id])
+
+  return updatedProduct.rows[0];
+}
+
+const updateProductVariantsQuery = async (id, feild, value) => {
+  const updatedProduct = await pool.query(`UPDATE product_variants 
     SET ${feild.join(",")} WHERE id = $${value.length + 1}
     RETURNING *`, [...value, id])
 
@@ -259,12 +270,13 @@ export {
   getSpecificUserQuery,
   deleteUserQuery,
   searchUserQuery,
-  getAllProductsQuery,
-  getProductQuery,
+  getAllProductsAdminQuery,
+  getSpecificProductAdminQuery,
   insertNewProductQuery,
   insertNewProductVariant,
   updateProductQuery,
-  deleteProductQuery,
+  updateProductVariantsQuery,
+  deleteProductQuery, 
   parmanentDeletedProductQuery,
   publishProductQuery,
   unPublishProductQuery,
