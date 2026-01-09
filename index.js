@@ -32,7 +32,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', apiAuthenticator, auth);
 
-app.use('/api/user',apiAuthenticator, users); 
+app.use('/api/user',apiAuthenticator, authenticateUser, users); 
 
 app.use('/api/admin/user', apiAuthenticator, authenticateUser, checkAdmin, admins);
 

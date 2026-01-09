@@ -7,7 +7,7 @@ import {
 
 const specificUpdateUser = async (req, res) => {
     // console.log(req.body.role);
-    const targetId = req.params.id;
+    const targetId = req.params.id? req.params.id : req.user.id;
     const USER__UPDATABLE_FEILDS = [
         'username',
         'email',
@@ -30,9 +30,17 @@ const specificUpdateUser = async (req, res) => {
     }
 
     const field = Object.keys(req.body).filter(key => USER__UPDATABLE_FEILDS.includes(key));
+
+    if (field.length === 0) {
+        return res.status(400).json({ message: "No updatable fields provided" });
+    }
+    console.log(field);
     const setClauses = field.map((key, i) => (
         `${key} = $${i + 1}`
-    )).join(", ");
+    ));
+
+    console.log('trouble here');
+
     const value = field.map(key => req.body[key]);
 
     try {

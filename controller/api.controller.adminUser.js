@@ -1,6 +1,5 @@
 import {
     getAllUsersQuery,
-    getSpecificUserQuery,
     deleteUserQuery,
     searchUserQuery
 } from '../model/db.js';
@@ -23,21 +22,6 @@ const getAllUser = async (req, res) => {
         });
     } catch (error) {
         return res.status(500).json("Error fetching users , " + error);
-    }
-}
-
-const getSpecificUser = async (req, res) => {
-    const id = req.params.id;
-    // console.log("getSpecificUser");
-    
-    try {
-        const userDetails = await getSpecificUserQuery(id);
-        if (!userDetails) return res.status(404).json({ message: "User not found" });
-        return res.status(200).json({ message: "User Details Updated", userDetails });
-    } catch (error) {
-        console.log(error);
-        
-        return res.status(500).json("Error fetching users details , " + error);
     }
 }
 
@@ -79,7 +63,6 @@ const searchUser = async (req, res) => {
 
 export {
     getAllUser,
-    getSpecificUser,
     deleteUser,
     searchUser
 }

@@ -19,22 +19,22 @@ import {
 
 
 const refreshAccessToken = async (req, res) => {
-    const refreshToken = req.body.refreshToken;
+    const refreshToken = req.body.token;
     if (!refreshToken) {
         return res.status(400).json({ message: "Refresh token is required" });
 }
 
     try {
         const decoded = verifyRefreshToken(refreshToken);
-        // console.log(decoded);
+        // console.log("decoded");
         const user = await findUserByUserIdQuery(decoded.id);
-        console.log(user);
+        // console.log(user);
         if (!user) return res.status(404).json({ message: "User not found" });
         if (!user.active) return res.status(403).json({ message: "This account is deactivated" });
         const accessToken = generateAccessToken(user);
-        res.json({ accessToken });
+        return res.json({ accessToken });
     } catch (error) {
-        res.status(403).json({ message: "Invalid refresh token" });
+        return res.status(403).json({ message: "Invalid refresh token" });
     }
 }
 
