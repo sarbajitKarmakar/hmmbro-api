@@ -34,12 +34,12 @@ const specificUpdateUser = async (req, res) => {
     if (field.length === 0) {
         return res.status(400).json({ message: "No updatable fields provided" });
     }
-    console.log(field);
+    // console.log(field);
     const setClauses = field.map((key, i) => (
         `${key} = $${i + 1}`
     ));
 
-    console.log('trouble here');
+    // console.log('trouble here');
 
     const value = field.map(key => req.body[key]);
 

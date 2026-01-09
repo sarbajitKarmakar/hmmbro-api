@@ -40,7 +40,7 @@ router.route('/:id')
 router.route('/:id/delete')
     .put(authenticateUser, checkAdmin, deleteProduct); //soft delete product (admin only)
 
-router.route(`/id/recover`)
+router.route(`/:id/recover`)
     .put(authenticateUser, checkAdmin, recoverProduct); //soft delete product (admin only)
 
 

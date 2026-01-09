@@ -57,7 +57,7 @@ const pool = new Pool(config);
 
 
 const getAllUsersQuery = async (limit, offset) => {
-  const res = await pool.query('SELECT u.id, u.username, u.email, u.phone, u.pic, c.total_count FROM (SELECT * FROM users WHERE role = $3 ORDER BY id DESC LIMIT $1 OFFSET $2) u CROSS JOIN (SELECT COUNT(*) AS total_count  FROM users WHERE role = $3) c;', [limit, offset, 'user']);
+  const res = await pool.query('SELECT u.id, u.username, u.email, u.phone, u.pic, c.total_count , c.registered_at FROM (SELECT * FROM users WHERE role = $3 ORDER BY id DESC LIMIT $1 OFFSET $2) u CROSS JOIN (SELECT COUNT(*) AS total_count  FROM users WHERE role = $3) c;', [limit, offset, 'user']);
   return res.rows;
 }
 
@@ -260,7 +260,7 @@ RETURNING *;
   return deleted.rows[0];
 }
 
-const deleteProductVariantonProductDeleteQuery = async (id) => {
+const deleteProductVariantOnProductDeleteQuery = async (id) => {
   const deleted = await pool.query(`
     UPDATE product_variants 
     SET delete_at = NOW(), published_at= NULL 
@@ -281,11 +281,21 @@ const deleteProductVariantQuery = async (id) => {
 const recoverProductQuery = async (id) =>{
   const result = await pool.query(`
   UPDATE products 
-  Set isdelete = false WHERE id = $1 RETURNING *
-  UPDATE product_variants 
-  SET isdelete = false WHERE product_id = $1 RETURNING *
-    `);
+  Set delete_at = NULL 
+  WHERE id = $1 AND delete_at IS NOT NULL RETURNING *;
+    `,[id]);
+    return result.rows[0];
 }
+
+const recoverProductVariantOnProductDeleteQuery = async (id) =>{
+   const recovered = await pool.query(`
+    UPDATE product_variants 
+    SET delete_at = NULL
+    WHERE product_id = $1 AND delete_at IS NOT NULL RETURNING *
+     `, [id]);
+  return recovered.rows[0];
+   }
+
 
 const recoverProductVariantQuery = async (id) =>{
   const result = await pool.query(`
@@ -357,9 +367,10 @@ export {
   updateProductQuery,
   updateProductVariantsQuery,
   deleteProductQuery,
-  deleteProductVariantonProductDeleteQuery,
+  deleteProductVariantOnProductDeleteQuery,
   deleteProductVariantQuery,
   recoverProductQuery,
+  recoverProductVariantOnProductDeleteQuery,
   recoverProductVariantQuery,
   parmanentDeletedProductQuery,
   publishProductQuery,

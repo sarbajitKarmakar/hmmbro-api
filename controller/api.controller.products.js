@@ -4,9 +4,7 @@ import {
     getSpecificProductVariantAdminQuery,
     updateProductQuery,
     updateProductVariantsQuery,
-    deleteProductQuery,
     deleteProductVariantQuery,
-    recoverProductQuery,
     recoverProductVariantQuery,
     parmanentDeletedProductQuery,
     publishProductQuery,
@@ -16,7 +14,8 @@ import {
 
 import {
     createProductService,
-    deleteProductService
+    deleteProductService,
+    recoverProductService
 } from "../services/product.service.js"
 
 const getProducts = async (req, res) => {
@@ -147,7 +146,7 @@ const updateProduct = async (req, res) => {
     ));
 
     setClauses.push(`updated_at = NOW()`);
-    console.log(setClauses)
+    // console.log(setClauses)
 
     if (field.length === 0) {
         return res.status(400).json({ message: "No valid fields to update" })
@@ -266,11 +265,14 @@ const recoverProductVariant = async (req, res) => {
 const recoverProduct = async (req, res) => {
     const id = req.params.id;
     try {
-        const recoveredProduct = await recoverProductQuery(id)
-        if (!recoveredProduct) return res.status(404).json({ message: "Product not found" });
-        res.status(200).json({ message: "Recovered Succefully", recoveredProduct })
+        await recoverProductService(id);
+        
+        res.status(200).json({ message: "Recovered Succefully"})
     } catch (error) {
-        console.log(`Error occured in delete product section : ${error}`);
+        // console.log(`Error occured in delete product section : ${error}`);
+        if (error.message === "Product not found or already recovered."){
+            return res.status(404).json({message : error.message})
+        }
         return res.status(500).json({ message: "Failed to Recover product" })
     }
 };

@@ -3,7 +3,9 @@ import pool,
     insertNewProductQuery,
     insertNewProductVariant,
     deleteProductQuery,
-    deleteProductVariantonProductDeleteQuery
+    deleteProductVariantOnProductDeleteQuery,
+    recoverProductQuery,
+    recoverProductVariantOnProductDeleteQuery,
 } from '../model/db.js';
 
 
@@ -35,16 +37,16 @@ const createProductService = async (body) => {
 
         if (variant_id) {
             const published_at = ispublish ? 'NOW()' : null;
-            const payload =[productId, variant_id, price, stock, sku, published_at, img_urls];
+            const payload = [productId, variant_id, price, stock, sku, published_at, img_urls];
             // console.log(payload.includes(undefined))
             const img = img_urls?.length || 0;
             if (ispublish && (Number(img) === 0 || payload.includes(undefined))) {
                 // console.log("aaaaaa")
                 //stop publishing if any field is missing
-                
+
                 throw new Error("To publish a product, all fields must be completed with minimum single image.");
             }
-           
+
             await insertNewProductVariant(client, payload);
         }
         await client.query('COMMIT');
@@ -66,8 +68,33 @@ const deleteProductService = async (productId) => {
         if (!deletedProduct) {
             throw new Error("Product not found or already deleted.");
         }
+
+        const deletedProductVariants = await deleteProductVariantOnProductDeleteQuery(productId);
+        // console.log(deletedProductVariants);
+        // console.log("inside service")
+        await client.query('COMMIT');
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+
+}
+
+const recoverProductService = async (productId) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const recoveredProduct = await recoverProductQuery(productId);
+        if (!recoveredProduct) {
+            throw new Error("Product not found or already recovered.");
+        }
         
-        const deletedProductVariants = await deleteProductVariantonProductDeleteQuery(productId);
+        const recoveredProductVariants = await recoverProductVariantOnProductDeleteQuery(productId);
+        // console.log("trouble")
         // console.log(deletedProductVariants);
         // console.log("inside service")
         await client.query('COMMIT');
@@ -82,5 +109,6 @@ const deleteProductService = async (productId) => {
 
 export {
     createProductService,
-    deleteProductService
+    deleteProductService,
+    recoverProductService,
 }
