@@ -57,7 +57,7 @@ const pool = new Pool(config);
 
 
 const getAllUsersQuery = async (limit, offset) => {
-  const res = await pool.query('SELECT u.id, u.username, u.email, u.phone, u.pic, c.total_count FROM (SELECT * FROM users WHERE role = $3 ORDER BY id DESC LIMIT $1 OFFSET $2) u CROSS JOIN (SELECT COUNT(*) AS total_count  FROM users WHERE role = $3) c;', [limit, offset, 'user']);
+  const res = await pool.query('SELECT u.id, u.username, u.email, u.phone, u.pic, c.total_count , c.registered_at FROM (SELECT * FROM users WHERE role = $3 ORDER BY id DESC LIMIT $1 OFFSET $2) u CROSS JOIN (SELECT COUNT(*) AS total_count  FROM users WHERE role = $3) c;', [limit, offset, 'user']);
   return res.rows;
 }
 
@@ -72,18 +72,16 @@ const findUserByEmailQuery = async (email) => {
 }
 
 const findUserByUserIdQuery = async (id) => {
-  console.log(id);
   const res = await pool.query('SELECT id, role, active FROM users WHERE id = $1', [id]);
   return res.rows[0];
 }
 
 const updateUserQuery = async (userId, fields, values) => {
   // console.log([...values,userId]);
-
   const update = await pool.query(`UPDATE users 
    SET ${fields.join(', ')} 
    WHERE id = $${values.length + 1}
-   RETURNING username, pic, active;`,
+   RETURNING id,username, email, phone, pic, active;`,
     [...values, userId]);
   return update.rows[0];
 }
@@ -147,44 +145,69 @@ LIMIT $2 OFFSET $3;`, [`%${value}%`, limit, offset]);
 //-------------------operation on products-------------------
 
 // do joining with varient
-const getAllProductsQuery = async (limit, offset) => {
-  const res = await pool.query(`SELECT
-  p.id            AS product_id,
-  p.name          AS product_name,
-  pv.id           AS product_variant_id,
-  v.variant_ml,
-  pv.price,
-  pv.stock,
-  pv.sku,
-  pv.img_urls,
-  p.type
-FROM products p
-JOIN product_variants pv ON pv.product_id = p.id
-JOIN variant v ON v.id = pv.variant_id
-WHERE pv.isdelete = false;
-LIMIT $1 OFFSET $2
-`, [limit, offset]);
-  return res.rows;
-}
-
-const getProductQuery = async (id) => {
-  const res = await pool.query(`SELECT 
+const getAllProductsAdminQuery = async (limit, offset) => {
+  const res = await pool.query(`
+SELECT 
 p.id as product_id,
-pv.id as provar_id,
+pv.id as productVariant_id,
 v.id as variant_id,
+pv.sku,
 p.name,
+v.variant_ml as ml,
 p.type,
 pv.price,
 pv.stock,
-pv.sku,
 pv.img_urls,
-pv.ispublish,
-v.variant_ml as ml
-FROM product_variants pv 
-JOIN products p ON pv.product_id = p.id
-JOIN variant v ON pv.variant_id = v.id
-WHERE pv.id = $1
-ORDER BY p.name`, [id]);
+pv.published_at,
+pv.created_at,
+pv.updated_at,
+pv.delete_at
+FROM products p
+LEFT JOIN product_variants pv ON pv.product_id = p.id
+LEFT JOIN variant v ON pv.variant_id = v.id
+WHERE pv.delete_at IS NULL
+
+ORDER BY pv.id
+LIMIT $1 OFFSET $2;
+
+`,
+
+[limit, offset]);
+
+const count = await pool.query(`
+select count(*) as total_count from product_variants
+`,);
+
+  return {res: res.rows, total_count: count.rows[0].total_count};
+}
+
+const getSpecificProductAdminQuery = async (id) => {
+  const res = await pool.query(`SELECT * FROM products WHERE id = $1`, [id]);
+  return res.rows[0];
+}
+
+const getSpecificProductVariantAdminQuery = async (id) => {
+  const res = await pool.query(`SELECT 
+SELECT 
+p.id as product_id,
+pv.id as productVariant_id,
+v.id as variant_id,
+pv.sku,
+p.name,
+v.variant_ml as ml,
+p.type,
+pv.price,
+pv.stock,
+pv.img_urls,
+pv.published_at,
+pv.created_at,
+pv.updated_at,
+pv.delete_at
+FROM products p
+LEFT JOIN product_variants pv ON pv.product_id = p.id
+LEFT JOIN variant v ON pv.variant_id = v.id
+WHERE pv.delete_at IS NULL
+ORDER BY pv.name`, [id]);
   return res.rows[0];
 }
 
@@ -203,7 +226,7 @@ const insertNewProductVariant = async (client, payload) => {
   await client.query(
     `INSERT INTO 
     product_variants 
-    (product_id, variant_id, price, stock, sku, ispublish, img_urls)
+    (product_id, variant_id, price, stock, sku, published_at, img_urls)
     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
     payload
   );
@@ -217,9 +240,68 @@ const updateProductQuery = async (id, feild, value) => {
   return updatedProduct.rows[0];
 }
 
+const updateProductVariantsQuery = async (id, feild, value) => {
+  const updatedProduct = await pool.query(`UPDATE product_variants 
+    SET ${feild.join(",")} WHERE id = $${value.length + 1}
+    RETURNING *`, [...value, id])
+
+  return updatedProduct.rows[0];
+}
+
 const deleteProductQuery = async (id) => {
-  const deleted = await pool.query("UPDATE products SET isdelete = true, ispublish = false WHERE id = $1 RETURNING *", [id]);
+  const deleted = await pool.query(`
+UPDATE products
+SET delete_at = NOW()
+WHERE id = $1
+  AND delete_at IS NULL
+RETURNING *;
+
+     `, [id]);
   return deleted.rows[0];
+}
+
+const deleteProductVariantOnProductDeleteQuery = async (id) => {
+  const deleted = await pool.query(`
+    UPDATE product_variants 
+    SET delete_at = NOW(), published_at= NULL 
+    WHERE product_id = $1 AND delete_at IS NULL RETURNING *
+     `, [id]);
+  return deleted.rows;
+}
+
+const deleteProductVariantQuery = async (id) => {
+  const deleted = await pool.query(`
+    UPDATE product_variants 
+    SET delete_at = NOW(), published_at= NULL 
+    WHERE id = $1 AND delete_at IS NULL RETURNING *
+     `, [id]);
+  return deleted.rows[0];
+}
+
+const recoverProductQuery = async (id) =>{
+  const result = await pool.query(`
+  UPDATE products 
+  Set delete_at = NULL 
+  WHERE id = $1 AND delete_at IS NOT NULL RETURNING *;
+    `,[id]);
+    return result.rows[0];
+}
+
+const recoverProductVariantOnProductDeleteQuery = async (id) =>{
+   const recovered = await pool.query(`
+    UPDATE product_variants 
+    SET delete_at = NULL
+    WHERE product_id = $1 AND delete_at IS NOT NULL RETURNING *
+     `, [id]);
+  return recovered.rows[0];
+   }
+
+
+const recoverProductVariantQuery = async (id) =>{
+  const result = await pool.query(`
+  UPDATE product_variants 
+  SET isdelete = false WHERE product_id = $1 RETURNING *
+    `);
 }
 
 const parmanentDeletedProductQuery = async (id) => {
@@ -238,10 +320,28 @@ const unPublishProductQuery = async (id) => {
 }
 
 const searchProductQuery = async (value, limit, offset) => {
-  const searchValue = await pool.query(`SELECT p.id,p.name,p.price,p.prod_img,p.isdelete,p.stock,p.ispublish,v.variant_ml as ml,v.description, COUNT(*) OVER() AS total_count FROM products p LEFT JOIN variant v ON p.variant_id = v.id WHERE p.name ILIKE $1 ORDER BY p.name LIMIT $2 OFFSET $3`, [`%${value}%`, limit, offset]);
+  const searchValue = await pool.query(`SELECT
+     p.id,
+     p.name,
+     p.price,
+     p.prod_img,
+     p.isdelete,
+     p.stock,
+     p.ispublish,
+     v.variant_ml as ml,
+     v.description,
+    COUNT(*) OVER() AS total_count
+     FROM products p 
+     LEFT JOIN variant v ON p.variant_id = v.id 
+     WHERE p.name ILIKE $1 ORDER BY p.name LIMIT $2 OFFSET $3`, [`%${value}%`, limit, offset]);
 
 
   return searchValue.rows;
+}
+
+const getAllVariantsQuery = async () => {
+  const res = await pool.query('SELECT * FROM variant;');
+  return res.rows;
 }
 //-------------------operation on products-------------------
 
@@ -259,16 +359,23 @@ export {
   getSpecificUserQuery,
   deleteUserQuery,
   searchUserQuery,
-  getAllProductsQuery,
-  getProductQuery,
+  getAllProductsAdminQuery,
+  getSpecificProductAdminQuery,
+  getSpecificProductVariantAdminQuery,
   insertNewProductQuery,
   insertNewProductVariant,
   updateProductQuery,
+  updateProductVariantsQuery,
   deleteProductQuery,
+  deleteProductVariantOnProductDeleteQuery,
+  deleteProductVariantQuery,
+  recoverProductQuery,
+  recoverProductVariantOnProductDeleteQuery,
+  recoverProductVariantQuery,
   parmanentDeletedProductQuery,
   publishProductQuery,
   unPublishProductQuery,
-  searchProductQuery
+  searchProductQuery,getAllVariantsQuery
 };
 
 // Example query

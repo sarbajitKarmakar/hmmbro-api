@@ -4,6 +4,7 @@ const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET || 'your-256-bit-secre
 const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET || 'your-512-bit-secret';
 
 const generateAccessToken = (user) => {
+    // console.log("Generating access token for user:", user);
     const payload = {
         id: user.id,
         role: user.role,
@@ -28,7 +29,7 @@ const verifyAccessToken =  (token) => {
         
         return verify;
     } catch (err) {
-        console.log("verification failed . err:- " + err);
+        // console.log("verification failed . err:- " + err);
         
         return null;
     }
@@ -41,7 +42,7 @@ const verifyRefreshToken =  (token) => {
         
         return verify;
     } catch (err) {
-        console.log("verification failed . err:- " + err);
+        // console.log("verification failed . err:- " + err);
         
         return null;
     }
