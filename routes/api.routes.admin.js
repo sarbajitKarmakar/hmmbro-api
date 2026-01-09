@@ -2,12 +2,12 @@ import express from 'express';
 
 import { 
     getAllUser,
-    getSpecificUser, 
     deleteUser,
     searchUser,
 } from '../controller/api.controller.adminUser.js';
 
 import {
+    getSpecificUser, 
     deactivateAcc,
     activateAcc,
 } from '../controller/api.controller.common.js';
@@ -22,7 +22,7 @@ router.route('/all')
     .get(getAllUser)
 
 router.route('/search')
-        .get(searchUser);
+        .post(searchUser);
     // get specific user details by admin
 router.route('/:id')
     .get(getSpecificUser)
