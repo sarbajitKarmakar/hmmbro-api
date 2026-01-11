@@ -5,7 +5,9 @@ import checkAdmin from "../middleware/checkAdmin.js";
 
 import {
     getProducts,
+    getProductsVariant,
     getSpecificProduct,
+    getSpecificProductVariant,
     insertNewProduct,
     updateProduct,
     updateProductVariants,
@@ -18,7 +20,8 @@ import {
     unPublishProduct,
     searchProduct,
     getVariants,
-    createVariant
+    createVariant,
+    getDeletedProducts
 } from "../controller/api.controller.products.js";
 
 
@@ -27,8 +30,19 @@ const router = express.Router();
 
 
 router.route('/')
-    .get(authenticateUser, checkAdmin, getProducts)  //get all products and also specific products by sending id in query
+    .get(authenticateUser, checkAdmin, getProducts)  //get all products 
     .post(authenticateUser, checkAdmin, insertNewProduct); //insert new product (admin only)
+
+router.route('/deleted')
+    .get(authenticateUser, checkAdmin, getDeletedProducts);  //get all products including deleted ones
+
+    router.route('/product-variant')
+    .get(authenticateUser, checkAdmin, getProductsVariant)  //get all products variants
+
+router.route('/variant')
+    .get(authenticateUser, checkAdmin, getVariants) //get variant by ml
+    .post(authenticateUser, checkAdmin, createVariant); //create new variant
+// .put(authenticateUser, checkAdmin, deleteVariant); //create new variant
 
 router.route('/search')
     .post(authenticateUser, checkAdmin, searchProduct);
@@ -45,7 +59,7 @@ router.route(`/:id/recover`)
 
 
 router.route('/product-variant/:id')
-    .get(authenticateUser, checkAdmin, getSpecificProduct) //get specific product by id (admin only)
+    .get(authenticateUser, checkAdmin, getSpecificProductVariant) //get specific product by id (admin only)
     .patch(authenticateUser, checkAdmin, updateProductVariants);//edit product variant (admin only)
 
 router.route('/product-variant/:id/delete')
@@ -63,10 +77,7 @@ router.route('/:id/publish')
 router.route('/:id/unpublish')
     .put(authenticateUser, checkAdmin, unPublishProduct);//uspublish product (admin only)
 
-router.route('/variant')
-    .get(authenticateUser, checkAdmin, getVariants) //get variant by ml
-    .post(authenticateUser, checkAdmin, createVariant); //create new variant
-    // .put(authenticateUser, checkAdmin, deleteVariant); //create new variant
+
 
 // router.route('/:id/parmanent')
 //     .delete(authenticateUser, checkAdmin, parmanentDeleteProduct); //parmanent delete product (admin only)
