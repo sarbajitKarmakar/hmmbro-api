@@ -97,13 +97,14 @@ const deactivateAccQuery = async (id) => {
 }
 
 const activateAccQuery = async (id) => {
-  await pool.query(
+  const result = await pool.query(
     `UPDATE users 
    SET active = true 
    WHERE id = $1 
    RETURNING *;`,
     [id]
   );
+  return result.rows[0];
 }
 
 const getSpecificUserQuery = async (id) => {
