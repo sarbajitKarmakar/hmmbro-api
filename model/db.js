@@ -25,8 +25,10 @@
 //   connectionTimeoutMillis: 2000, // return error after 2s if no connection
 // });
 
-
 import { Pool } from "pg";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -38,11 +40,11 @@ const config = connectionString
   }
   : {
     // Your existing local fallback logic
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'sarb1928',
-    database: process.env.DB || 'HmmBro',
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB,
     // Other pool settings...
     max: 20,
     idleTimeoutMillis: 30000,
@@ -57,8 +59,20 @@ const pool = new Pool(config);
 
 
 const getAllUsersQuery = async (limit, offset) => {
-  const res = await pool.query('SELECT u.id, u.username, u.email, u.phone, u.pic, c.total_count , c.registered_at FROM (SELECT * FROM users WHERE role = $3 ORDER BY id DESC LIMIT $1 OFFSET $2) u CROSS JOIN (SELECT COUNT(*) AS total_count  FROM users WHERE role = $3) c;', [limit, offset, 'user']);
-  return res.rows;
+  
+  const res = await pool.query(`SELECT 
+    id, 
+    username, 
+    email, 
+    phone, 
+    pic,
+    registered_at
+    FROM users WHERE role = $3 
+    LIMIT $1 OFFSET $2;`, 
+    [limit, offset, 'user']);
+
+  const count = await pool.query(`SELECT COUNT(*) AS total_count FROM users WHERE role = $1;`, ['user']);
+  return { res: res.rows, total_count: count.rows[0].total_count };
 }
 
 const insertNewUserQuery = async (username, email, password, phone, pic) => {
@@ -97,6 +111,7 @@ const deactivateAccQuery = async (id) => {
 }
 
 const activateAccQuery = async (id) => {
+  
   const result = await pool.query(
     `UPDATE users 
    SET active = true 

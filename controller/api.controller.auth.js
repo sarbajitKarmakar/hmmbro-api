@@ -68,6 +68,7 @@ const createUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
     const email = req.body.email.trim().toLowerCase();
+    // console.log("not here");
     try {
         const user = await findUserByEmailQuery(email);
         
