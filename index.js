@@ -13,8 +13,8 @@ import apiAuthenticator from './middleware/apiAuthenticator.js';
 import authenticateUser from './middleware/authenticateUser.js';
 import checkAdmin from './middleware/checkAdmin.js';
 // import pool from './model/connection'
-dotenv.config();
 
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT;

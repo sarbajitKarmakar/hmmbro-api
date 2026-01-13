@@ -39,6 +39,7 @@ const deleteUser = async (req, res) => {
 }
 
 const searchUser = async (req, res) => {
+    // console.log("not here")
     if (!req.query.value) return res.status(400).json({ message: "Please Sent any value in query to search" })
     const value = req.query.value
         .toString()
