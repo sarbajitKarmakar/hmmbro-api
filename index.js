@@ -1,3 +1,4 @@
+
 import express from 'express';
 import bodyParser from 'body-parser';
 import dotenv from "dotenv";
@@ -12,11 +13,11 @@ import apiAuthenticator from './middleware/apiAuthenticator.js';
 import authenticateUser from './middleware/authenticateUser.js';
 import checkAdmin from './middleware/checkAdmin.js';
 // import pool from './model/connection'
-
 dotenv.config();
 
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 
 // Body parser middleware

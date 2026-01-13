@@ -11,14 +11,14 @@ const getAllUser = async (req, res) => {
         const page = Number(req.query.page) || 1; // default page to 1 if not provided
         const offset = (page - 1) * limit;
         const allUser = await getAllUsersQuery(limit, offset);
-        const pageCount = Math.ceil(Number(allUser[0].total_count) / limit);
+        const pageCount = Math.ceil(Number(allUser.total_count) / limit);
        
         // console.log(pageCount);
 
         return res.status(200).json({
             page,
             pageCount:pageCount,
-            data: allUser
+            data: allUser.res
         });
     } catch (error) {
         return res.status(500).json("Error fetching users , " + error);
