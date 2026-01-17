@@ -75,13 +75,13 @@ const getAllUsersQuery = async (limit, offset) => {
   return { res: res.rows, total_count: count.rows[0].total_count };
 }
 
-const insertNewUserQuery = async (username, email, password, phone, pic) => {
-  const insertedUser = await pool.query('INSERT INTO users (username, email, password,phone, pic) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, email, phone, pic', [username, email, password, phone, pic]);
+const insertNewUserQuery = async (username, email, password, phone, imageUrl, publicId) => {
+  const insertedUser = await pool.query('INSERT INTO users (username, email, password,phone, avatar, avatar_id) VALUES ($1, $2, $3, $4, $5,$6) RETURNING id, username, email, phone, avatar, avatar_id', [username, email, password, phone, imageUrl, publicId]);
   return insertedUser.rows[0];
 }
 
 const findUserByEmailQuery = async (email) => {
-  const res = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+  const res = await pool.query('SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL', [email]);
   return res.rows[0];
 }
 
@@ -95,7 +95,7 @@ const updateUserQuery = async (userId, fields, values) => {
   const update = await pool.query(`UPDATE users 
    SET ${fields.join(', ')} 
    WHERE id = $${values.length + 1}
-   RETURNING id,username, email, phone, pic, active;`,
+   RETURNING id,username, email, phone, avatar, active;`,
     [...values, userId]);
   return update.rows[0];
 }
@@ -105,7 +105,7 @@ const deactivateAccQuery = async (id) => {
     `UPDATE users 
    SET active = false 
    WHERE id = $1 
-   RETURNING username, pic, active;`,
+   RETURNING username, avatar, active;`,
     [id]
   );
 }
@@ -116,14 +116,14 @@ const activateAccQuery = async (id) => {
     `UPDATE users 
    SET active = true 
    WHERE id = $1 
-   RETURNING *;`,
+   RETURNING username, avatar, active;;`,
     [id]
   );
   return result.rows[0];
 }
 
 const getSpecificUserQuery = async (id) => {
-  const res = await pool.query('SELECT id,username,email,phone,pic,role,active FROM users WHERE id = $1', [id]);
+  const res = await pool.query('SELECT id,username,email,phone,avatar,role,active FROM users WHERE id = $1', [id]);
   return res.rows[0];
 }
 
@@ -138,6 +138,8 @@ const searchUserQuery = async (value, limit, offset) => {
   username,
   email,
   phone,
+  avatar,
+  avatar_id,
   active,
   role,
   COUNT(*) OVER() AS total_count

@@ -4,10 +4,15 @@ import {
     generateRefreshToken,
 } from '../services/auth.js';
 
+import { 
+    uploadImage,
+    deleteImage,
+} from '../services/cloudenary.js'
+
 import {
     hashPassword,
     verifyPassword
-} from '../services/hashPass.js';
+} from '../utils/hashPass.js';
 
 import { 
     findUserByUserIdQuery,
@@ -39,9 +44,14 @@ const refreshAccessToken = async (req, res) => {
 }
 
 const createUser = async (req, res) => {
-    const { username, email, password, phone, pic } = req.body;
+    const { username, email, password, phone } = req.body;
+    let imageUrl = null, publicId = null;
+
+    if (!email || !password || !username) {
+        return res.status(400).json({ message: "Missing fields" });
+    }
     const trimmedEmail = email.trim().toLowerCase();
-    const trimmedPhone = phone.trim();
+    const trimmedPhone = phone?.trim();
     if (!trimmedEmail || !password || !username) {
       return res.status(400).json({ message: "Missing fields" });
     }
@@ -50,9 +60,13 @@ const createUser = async (req, res) => {
         return res.status(500).json("Error hashing password");
     }
     try {
-        const data = await insertNewUserQuery(username, trimmedEmail, hashedPassword, trimmedPhone, pic);
+        const result = req.file? await uploadImage(req.file.path, "Avatars") : null;
+        imageUrl = result? result.url: null;
+        publicId = result? result.publicId: null;
+        const data = await insertNewUserQuery(username, trimmedEmail, hashedPassword, trimmedPhone, imageUrl, publicId);
         return res.status(201).json({ message: "User created successfully ", data });
     } catch (error) {
+        await deleteImage(publicId)
         if (error.code === "23505") {
             // console.log(error.constraint);
             if (error.constraint === "email") {
@@ -85,7 +99,7 @@ const loginUser = async (req, res) => {
                     username: user.username,
                     email: user.email,
                     phone: user.phone,
-                    pic: user.pic,
+                    avatar: user.avatar,
                     role: user.role,
                     active: user.active
                 },
@@ -104,8 +118,14 @@ const loginUser = async (req, res) => {
 
 }
 
+const test = (req, res) =>{
+        console.log(req.file, req.body)
+        res.json({ message: "API is working!" });
+}
+
 export {
     refreshAccessToken,
     createUser,
-    loginUser
+    loginUser,
+    test
 }

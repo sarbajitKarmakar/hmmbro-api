@@ -8,6 +8,7 @@ const generateAccessToken = (user) => {
     const payload = {
         id: user.id,
         role: user.role,
+        avatar_id: user.avatar_id
     }
 
     return jwt.sign(payload, accessTokenSecret, { expiresIn: '15m' });
