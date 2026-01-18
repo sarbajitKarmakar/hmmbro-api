@@ -2,17 +2,24 @@ import {
     verifyRefreshToken,
     generateAccessToken,
     generateRefreshToken,
-} from '../services/auth.js';
+    generateOtpService,
+    verifyOtpService
+} from '../services/auth.service.js';
 
-import { 
-    uploadImage,
-    deleteImage,
-} from '../services/cloudenary.js'
+// import { 
+//     uploadImage,
+//     deleteImage,
+// } from '../services/cloudenary.sevice.js'
 
 import {
     hashPassword,
     verifyPassword
 } from '../utils/hashPass.js';
+import {
+    generateRandomOTP,
+    hashOTP
+}from '../utils/otp.js';
+
 
 import { 
     findUserByUserIdQuery,
@@ -21,6 +28,93 @@ import {
 } from '../model/db.js';
 
 
+
+
+// helper: hash OTP (must match generate controller)
+const generateOtpAndSendEmailController = async (req, res) => {
+  
+
+  try {
+    const { user_id ,email, otp_type } = req.body;
+
+    if (!email || !otp_type || !user_id) {
+      return res.status(400).json({
+        message: "email, otp_type and user_id are required"
+      });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const otp_type_lower = otp_type.trim().toLowerCase();
+
+    const otp = generateRandomOTP();
+    const otpHash = hashOTP(otp);
+
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // console.log(otp, trimmedEmail, user_id, otpHash, otp_type_lower, expiresAt)
+    await generateOtpService(otp, trimmedEmail, user_id, otpHash, otp_type_lower, expiresAt)
+
+    return res.status(200).json({
+      message: "OTP sent successfully",
+      expires_in_seconds: 300
+    });
+
+  } catch (error) {
+    if (error.message === "User not found") {
+        return res.status(404).json({
+        message: "User not found"
+      });
+    }
+    if (error.message === "Failed to send OTP email") {
+        return res.status(500).json({
+        message: "Failed to send OTP email"
+      });
+    }
+    if (error.message === "OTP generation limit exceeded") {
+        return res.status(429).json({
+        message: "OTP generation limit exceeded. Please try again later."
+      });
+    }
+
+    return res.status(500).json({
+      message: "Failed to generate OTP" + error
+    });
+  } 
+}
+
+const verifyOtpController = async (req, res) => {
+//   
+
+  try {
+    const { contact, otp, otp_type } = req.body;
+
+    if (!contact || !otp || !otp_type) {
+      return res.status(400).json({
+        message: "contact, otp and otp_type are required"
+      });
+    }
+
+    const otpHash = hashOTP(otp);
+
+    await verifyOtpService(contact, otp_type, otpHash);
+
+    return res.status(200).json({
+      message: "OTP verified successfully"
+    });
+
+  } catch (error) {
+    // 
+    // console.error(error);
+    if (error.message === "Invalid or expired OTP") {
+        return res.status(400).json({
+        message: "Invalid or expired OTP"
+      });
+    }
+    return res.status(500).json({
+      message: "OTP verification failed"
+    });
+  } 
+};
 
 
 const refreshAccessToken = async (req, res) => {
@@ -44,29 +138,35 @@ const refreshAccessToken = async (req, res) => {
 }
 
 const createUser = async (req, res) => {
+    // console.log(req.body);
     const { username, email, password, phone } = req.body;
-    let imageUrl = null, publicId = null;
+    const imageUrl = null;
+    const publicId = null;
 
-    if (!email || !password || !username) {
-        return res.status(400).json({ message: "Missing fields" });
+    if(!email){
+        return res.status(400).json({ message: "Email is required" });
     }
+    if(!password){
+        return res.status(400).json({ message: "Password is required" });
+    }
+    if(!username){
+        return res.status(400).json({ message: "Username is required" });
+    }
+    
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPhone = phone?.trim();
     if (!trimmedEmail || !password || !username) {
       return res.status(400).json({ message: "Missing fields" });
     }
+    
     const hashedPassword = await hashPassword(password);
     if (!hashedPassword) {
         return res.status(500).json("Error hashing password");
     }
     try {
-        const result = req.file? await uploadImage(req.file.path, "Avatars") : null;
-        imageUrl = result? result.url: null;
-        publicId = result? result.publicId: null;
         const data = await insertNewUserQuery(username, trimmedEmail, hashedPassword, trimmedPhone, imageUrl, publicId);
-        return res.status(201).json({ message: "User created successfully ", data });
+        return res.status(201).json({ message: `OTP sent to ${trimmedEmail}`, data });
     } catch (error) {
-        await deleteImage(publicId)
         if (error.code === "23505") {
             // console.log(error.constraint);
             if (error.constraint === "email") {
@@ -125,6 +225,8 @@ const test = (req, res) =>{
 
 export {
     refreshAccessToken,
+    generateOtpAndSendEmailController,
+    verifyOtpController,
     createUser,
     loginUser,
     test

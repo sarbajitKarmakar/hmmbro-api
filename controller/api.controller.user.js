@@ -1,18 +1,19 @@
 import {
     updateUserQuery,
     findUserByUserIdQuery,
+    findUserByEmailQuery,
 } from '../model/db.js';
 
 import {
     uploadImage,
     deleteImage,
-} from '../services/cloudenary.js'
+} from '../services/cloudenary.sevice.js'
 
 import {
     USER__UPDATABLE_FEILDS,
 } from '../constants/user.constants.js'
 
-import{
+import {
     deleteLocalFile,
 } from '../utils/file.js'
 
@@ -20,7 +21,7 @@ import{
 const specificUpdateUser = async (req, res) => {
     // console.log(req.body.role);
     const targetId = req.params.id ? req.params.id : req.user.id;
-    let result;
+    let result, getUser;
 
     // 
     if (req.body.password) return res.status(403).json({ message: "Password change is not allowed from this endpoint" });
@@ -52,27 +53,37 @@ const specificUpdateUser = async (req, res) => {
 
     const value = field.map(key => req.body[key]);
 
-    
+
     try {
-        const getUser = await findUserByUserIdQuery(targetId);
-
-        if (!getUser) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // if()
-
+        
+        // if() thiss need to changee here (optimize the and reduce multiple time upload image on cloudenary)
+        
         if (req.file) {
+                getUser = await findUserByUserIdQuery(targetId);
+                if (!getUser) {
+                    return res.status(404).json({ message: "User not found" });
+                }
+
+            if (req.body.email) {
+                const existingEmailUser = await findUserByEmailQuery(req.body.email);
+                if (existingEmailUser && parseInt(existingEmailUser.id) !== parseInt(targetId)) {
+                    return res.status(409).json({ message: "Email already exists" });
+                }
+            }
             result = await uploadImage(req.file.path, "Avatars");
+            // console.log('not here');
             setClauses.push(`avatar = $${setClauses.length + 1}`);
             setClauses.push(`avatar_id = $${setClauses.length + 1}`);
-    
+            
             value.push(result.url, result.publicId);
         }
-
+        setClauses.push(`updated_at = NOW()`);
         const updatedUser = await updateUserQuery(targetId, setClauses, value);
-
-        await deleteLocalFile(req.file.path);
+        
+        // console.log(getUser.avatar_id)
+        if(getUser)await deleteImage(getUser.avatar_id);
+        // console.log('not here')
+        // if (req.file) await deleteLocalFile(req.file.path);
         return res.status(200).json({ message: "Updated Successfully", updatedUser });
     } catch (error) {
         if (error.code === "23505") {
@@ -84,7 +95,7 @@ const specificUpdateUser = async (req, res) => {
                 return res.status(409).json({ message: "Phone no already exists" });
             }
         }
-        deleteImage(result.publicId)
+        if(result) await deleteImage(result.publicId);
         return res.status(500).json("Error updating user , " + error);
     }
 }

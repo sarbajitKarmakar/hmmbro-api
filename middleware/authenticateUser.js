@@ -1,4 +1,4 @@
-import { verifyAccessToken } from "../services/auth.js";
+import { verifyAccessToken } from "../services/auth.service.js";
 
 export default function authenticateUserddd(req, res, next) {
   const authHeader = req.headers["authorization"];

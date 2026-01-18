@@ -13,7 +13,6 @@ export const uploadImage = async (filePath, folder) => {
   const result = await cloudinary.uploader.upload(filePath, {
     folder,
     resource_type: "image",
-    folder: "products",
     quality: "auto",
   });
   await deleteLocalFile(filePath);
@@ -40,9 +39,10 @@ export const getImageUrl = (publicId, options = {}) => {
 // Delete image using public_id
 export const deleteImage = async (publicId) => {
   const result = await cloudinary.uploader.destroy(publicId);
+  // console.log('not here')
 
   if (result.result !== "ok" && result.result !== "not found") {
-    throw new Error("Failed to delete image");
+    // throw new Error("Failed to delete image");
   }
 
   return true;

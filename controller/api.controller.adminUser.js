@@ -28,7 +28,12 @@ const getAllUser = async (req, res) => {
 const deleteUser = async (req, res) => {
     const id = req.params.id;
     // console.log("deleteUser");
-    
+    if (!id) return res.status(400).json({ message: "User id is required" });
+    if (isNaN(Number(id))) return res.status(400).json({ message: "User id must be a number" });
+    if (Number(id) <= 0) return res.status(400).json({ message: "User id must be a positive number" });
+    if (Number(id) === Number(req.user.id)) return res.status(400).json({ message: "You cannot delete your own account" });
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Only admin can delete user" });
+
     try {
         const deletedUser = await deleteUserQuery(id);
         if (!deletedUser) return res.status(404).json({ message: "User not found" });
@@ -50,6 +55,11 @@ const searchUser = async (req, res) => {
     const page = Number(req.query.page) || 1;
     const offset = (page - 1) * limit;
     // console.log(value);
+    if (value.length === 0) return res.status(400).json({ message: "Search value cannot be empty" });
+    if (limit <= 0 || isNaN(limit)) return res.status(400).json({ message: "Limit must be a positive number" });
+    if (page <= 0 || isNaN(page)) return res.status(400).json({ message: "Page must be a positive number" });
+    if (offset < 0 || isNaN(offset)) return res.status(400).json({ message: "Offset must be a positive number" });
+    if (!isNaN(Number(value)) && Number(value) <= 0) return res.status(400).json({ message: "If search value is number, it must be a positive number" });
     
     try {
         const searchedVaule = await searchUserQuery(value, limit, offset);
