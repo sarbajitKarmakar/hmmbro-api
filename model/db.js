@@ -81,7 +81,6 @@ const findLatestValidQuery = async (client, contact, otp_type, otpHash) => {
         AND expires_at > NOW()
       ORDER BY created_at DESC
       LIMIT 1
-      FOR UPDATE
       `,
     [contact, otp_type, otpHash]
   );

@@ -1,11 +1,16 @@
 import jwt from 'jsonwebtoken';
-import pool, { 
+import pool, {
     findLatestValidQuery,
     markOtpAsVerifiedQuery,
     insertOtpQuery
 } from "../model/db.js";
-import { sendOtpThroughEmail } from './email.service.js';
 
+import { sendOtpEmail } from './email.service.js';
+
+import {
+    generateRandomOTP,
+    hashOTP
+}from '../utils/otp.js';
 
 
 const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET || 'your-256-bit-secret';
@@ -57,34 +62,43 @@ const verifyRefreshToken = (token) => {
     }
 }
 
-const generateOtpService = async ( otp, email, user_id, otpHash, otp_type, expiresAt) => {
+const generateOtpService = async (email, user_id, otp_type) => {
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
-        
+        const otp = generateRandomOTP();
+        const otpHash = hashOTP(otp);
+
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
         // store OTP (append-only)
-        const result =await insertOtpQuery(client,user_id, email, otpHash, otp_type, expiresAt);
+        console.log(email   
+            
+        )
+        const result = await insertOtpQuery(client, user_id, email, otpHash, otp_type, expiresAt);
         // send email
         // console.log(result);
-        await sendOtpThroughEmail(email, "Your HmmBro OTP", otp);
-        
+        await sendOtpEmail({ to: email, otp });
+
         await client.query("COMMIT");
     } catch (error) {
         await client.query("ROLLBACK");
         throw error;
-    // console.error(error);
-    }finally {
+        // console.error(error);
+    } finally {
         client.release();
     }
 }
 
-const verifyOtpService = async (contact, otp_type, otpHash) => {
+const verifyOtpService = async (contact, otp_type, otp) => {
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
 
+        const otpHash = hashOTP(otp);
         // 1️⃣ Find latest valid OTP
+        // console.log("Finding latest valid OTP for:", contact, otp_type, otpHash);
         const latestOtpId = await findLatestValidQuery(client, contact, otp_type, otpHash);
+        console.log(latestOtpId);
 
         if (!latestOtpId) {
             await client.query("ROLLBACK");

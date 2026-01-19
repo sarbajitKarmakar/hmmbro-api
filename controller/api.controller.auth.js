@@ -15,10 +15,6 @@ import {
     hashPassword,
     verifyPassword
 } from '../utils/hashPass.js';
-import {
-    generateRandomOTP,
-    hashOTP
-}from '../utils/otp.js';
 
 
 import { 
@@ -46,13 +42,8 @@ const generateOtpAndSendEmailController = async (req, res) => {
     const trimmedEmail = email.trim().toLowerCase();
     const otp_type_lower = otp_type.trim().toLowerCase();
 
-    const otp = generateRandomOTP();
-    const otpHash = hashOTP(otp);
-
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
     // console.log(otp, trimmedEmail, user_id, otpHash, otp_type_lower, expiresAt)
-    await generateOtpService(otp, trimmedEmail, user_id, otpHash, otp_type_lower, expiresAt)
+    await generateOtpService(trimmedEmail, user_id, otp_type_lower)
 
     return res.status(200).json({
       message: "OTP sent successfully",
@@ -94,9 +85,9 @@ const verifyOtpController = async (req, res) => {
       });
     }
 
-    const otpHash = hashOTP(otp);
+  
 
-    await verifyOtpService(contact, otp_type, otpHash);
+    await verifyOtpService(contact, otp_type, otp);
 
     return res.status(200).json({
       message: "OTP verified successfully"
@@ -155,9 +146,6 @@ const createUser = async (req, res) => {
     
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPhone = phone?.trim();
-    if (!trimmedEmail || !password || !username) {
-      return res.status(400).json({ message: "Missing fields" });
-    }
     
     const hashedPassword = await hashPassword(password);
     if (!hashedPassword) {
@@ -165,6 +153,7 @@ const createUser = async (req, res) => {
     }
     try {
         const data = await insertNewUserQuery(username, trimmedEmail, hashedPassword, trimmedPhone, imageUrl, publicId);
+        generateOtpService(trimmedEmail, data.id, "email");
         return res.status(201).json({ message: `OTP sent to ${trimmedEmail}`, data });
     } catch (error) {
         if (error.code === "23505") {
