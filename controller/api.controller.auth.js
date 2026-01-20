@@ -1,4 +1,4 @@
-import { 
+import {
     verifyRefreshToken,
     generateAccessToken,
     generateRefreshToken,
@@ -17,7 +17,7 @@ import {
 } from '../utils/hashPass.js';
 
 
-import { 
+import {
     findUserByUserIdQuery,
     insertNewUserQuery,
     findUserByEmailQuery
@@ -28,83 +28,83 @@ import {
 
 // helper: hash OTP (must match generate controller)
 const generateOtpAndSendEmailController = async (req, res) => {
-  
 
-  try {
-    const { user_id ,email, otp_type } = req.body;
 
-    if (!email || !otp_type || !user_id) {
-      return res.status(400).json({
-        message: "email, otp_type and user_id are required"
-      });
-    }
+    try {
+        const { user_id, email, otp_type } = req.body;
 
-    const trimmedEmail = email.trim().toLowerCase();
-    const otp_type_lower = otp_type.trim().toLowerCase();
+        if (!email || !otp_type || !user_id) {
+            return res.status(400).json({
+                message: "email, otp_type and user_id are required"
+            });
+        }
 
-    // console.log(otp, trimmedEmail, user_id, otpHash, otp_type_lower, expiresAt)
-    await generateOtpService(trimmedEmail, user_id, otp_type_lower)
+        const trimmedEmail = email.trim().toLowerCase();
+        const otp_type_lower = otp_type.trim().toLowerCase();
 
-    return res.status(200).json({
-      message: "OTP sent successfully",
-      expires_in_seconds: 300
-    });
+        // console.log(otp, trimmedEmail, user_id, otpHash, otp_type_lower, expiresAt)
+        await generateOtpService(trimmedEmail, user_id, otp_type_lower)
 
-  } catch (error) {
-    if (error.message === "User not found") {
-        return res.status(404).json({
-        message: "User not found"
-      });
-    }
-    if (error.message === "Failed to send OTP email") {
+        return res.status(200).json({
+            message: "OTP sent successfully",
+            expires_in_seconds: 300
+        });
+
+    } catch (error) {
+        if (error.message === "User not found") {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+        if (error.message === "Failed to send OTP email") {
+            return res.status(500).json({
+                message: "Failed to send OTP email"
+            });
+        }
+        if (error.message === "OTP generation limit exceeded") {
+            return res.status(429).json({
+                message: "OTP generation limit exceeded. Please try again later."
+            });
+        }
+
         return res.status(500).json({
-        message: "Failed to send OTP email"
-      });
+            message: "Failed to generate OTP" + error
+        });
     }
-    if (error.message === "OTP generation limit exceeded") {
-        return res.status(429).json({
-        message: "OTP generation limit exceeded. Please try again later."
-      });
-    }
-
-    return res.status(500).json({
-      message: "Failed to generate OTP" + error
-    });
-  } 
 }
 
 const verifyOtpController = async (req, res) => {
-//   
+    //   
 
-  try {
-    const { contact, otp, otp_type } = req.body;
+    try {
+        const { contact, otp, otp_type } = req.body;
 
-    if (!contact || !otp || !otp_type) {
-      return res.status(400).json({
-        message: "contact, otp and otp_type are required"
-      });
+        if (!contact || !otp || !otp_type) {
+            return res.status(400).json({
+                message: "contact, otp and otp_type are required"
+            });
+        }
+
+
+
+        await verifyOtpService(contact, otp_type, otp);
+
+        return res.status(200).json({
+            message: "OTP verified successfully"
+        });
+
+    } catch (error) {
+        // 
+        // console.error(error);
+        if (error.message === "Invalid or expired OTP") {
+            return res.status(400).json({
+                message: "Invalid or expired OTP"
+            });
+        }
+        return res.status(500).json({
+            message: "OTP verification failed"
+        });
     }
-
-  
-
-    await verifyOtpService(contact, otp_type, otp);
-
-    return res.status(200).json({
-      message: "OTP verified successfully"
-    });
-
-  } catch (error) {
-    // 
-    // console.error(error);
-    if (error.message === "Invalid or expired OTP") {
-        return res.status(400).json({
-        message: "Invalid or expired OTP"
-      });
-    }
-    return res.status(500).json({
-      message: "OTP verification failed"
-    });
-  } 
 };
 
 
@@ -112,7 +112,7 @@ const refreshAccessToken = async (req, res) => {
     const refreshToken = req.body.token;
     if (!refreshToken) {
         return res.status(400).json({ message: "Refresh token is required" });
-}
+    }
 
     try {
         const decoded = verifyRefreshToken(refreshToken);
@@ -133,28 +133,41 @@ const createUser = async (req, res) => {
     const { username, email, password, phone } = req.body;
     const imageUrl = null;
     const publicId = null;
+    let active = false;
 
-    if(!email){
+    if (req.user) {
+        if (req.user.role === 'admin') {
+            active = true;
+        }
+    }
+
+    if (!email) {
         return res.status(400).json({ message: "Email is required" });
     }
-    if(!password){
+    if (!password) {
         return res.status(400).json({ message: "Password is required" });
     }
-    if(!username){
+    if (!username) {
         return res.status(400).json({ message: "Username is required" });
     }
-    
+
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPhone = phone?.trim();
-    
+
     const hashedPassword = await hashPassword(password);
     if (!hashedPassword) {
         return res.status(500).json("Error hashing password");
     }
     try {
-        const data = await insertNewUserQuery(username, trimmedEmail, hashedPassword, trimmedPhone, imageUrl, publicId);
-        generateOtpService(trimmedEmail, data.id, "email");
-        return res.status(201).json({ message: `OTP sent to ${trimmedEmail}`, data });
+        const data = await insertNewUserQuery(username, trimmedEmail, hashedPassword, trimmedPhone, imageUrl, publicId, active);
+
+        if (!req.user) {
+
+            generateOtpService(trimmedEmail, data.id, "email");
+            return res.status(201).json({ message: `OTP sent to ${trimmedEmail}`, data });
+        }
+
+        return res.status(201).json({ message: "User created successfully", data });
     } catch (error) {
         if (error.code === "23505") {
             // console.log(error.constraint);
@@ -174,7 +187,7 @@ const loginUser = async (req, res) => {
     // console.log("not here");
     try {
         const user = await findUserByEmailQuery(email);
-        
+
         if (user) {
             if (!user.active) return res.status(403).json({ message: "This account is deactivated" });
             const isPasswordValid = await verifyPassword(req.body.password, user.password);
@@ -184,7 +197,7 @@ const loginUser = async (req, res) => {
             return res.status(200).json({
                 message: "Login Successful",
                 data: {
-                    id: user.id, 
+                    id: user.id,
                     username: user.username,
                     email: user.email,
                     phone: user.phone,
@@ -207,9 +220,9 @@ const loginUser = async (req, res) => {
 
 }
 
-const test = (req, res) =>{
-        console.log(req.file, req.body)
-        res.json({ message: "API is working!" });
+const test = (req, res) => {
+    console.log(req.file, req.body)
+    res.json({ message: "API is working!" });
 }
 
 export {

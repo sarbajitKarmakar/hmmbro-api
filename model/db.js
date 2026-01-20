@@ -126,12 +126,12 @@ const getAllUsersQuery = async (limit, offset) => {
   return { res: res.rows, total_count: count.rows[0].total_count };
 }
 
-const insertNewUserQuery = async (username, email, password, phone, imageUrl, publicId) => {
+const insertNewUserQuery = async (username, email, password, phone, imageUrl, publicId, active) => {
   const insertedUser = await pool.query(`INSERT INTO users 
-    (username, email, password,phone, avatar, avatar_id)
-     VALUES ($1, $2, $3, $4, $5,$6) 
+    (username, email, password,phone, avatar, avatar_id, active)
+     VALUES ($1, $2, $3, $4, $5,$6,$7) 
      RETURNING id, username, email, phone, avatar, avatar_id`,
-    [username, email, password, phone, imageUrl, publicId]);
+    [username, email, password, phone, imageUrl, publicId, active]);
   return insertedUser.rows[0];
 }
 
