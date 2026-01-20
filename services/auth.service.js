@@ -71,13 +71,19 @@ const generateOtpService = async (email, user_id, otp_type) => {
 
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
         // store OTP (append-only)
-        console.log(email   
+        // console.log(email   
             
-        )
+        // )
         const result = await insertOtpQuery(client, user_id, email, otpHash, otp_type, expiresAt);
         // send email
         // console.log(result);
-        await sendOtpEmail({ to: email, otp });
+        // await sendOtpEmail({ to: email, otp });
+        const subject = "Your HmmBro verification code";
+        const text =
+          `Your verification code is ${otp}.\n` +
+          `This code is valid for 5 minutes.\n\n` +
+          `If you did not request this, you can ignore this email.`;
+        await sendOtpEmail(email, subject, text);
 
         await client.query("COMMIT");
     } catch (error) {
