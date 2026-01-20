@@ -77,13 +77,13 @@ const generateOtpService = async (email, user_id, otp_type) => {
         const result = await insertOtpQuery(client, user_id, email, otpHash, otp_type, expiresAt);
         // send email
         // console.log(result);
-        // await sendOtpEmail({ to: email, otp });
-        const subject = "Your HmmBro verification code";
-        const text =
-          `Your verification code is ${otp}.\n` +
-          `This code is valid for 5 minutes.\n\n` +
-          `If you did not request this, you can ignore this email.`;
-        await sendOtpEmail(email, subject, text);
+        await sendOtpEmail({ to: email, otp });
+        // const subject = "Your HmmBro verification code";
+        // const text =
+        //   `Your verification code is ${otp}.\n` +
+        //   `This code is valid for 5 minutes.\n\n` +
+        //   `If you did not request this, you can ignore this email.`;
+        // await sendOtpEmail(email, subject, text);
 
         await client.query("COMMIT");
     } catch (error) {
@@ -104,7 +104,7 @@ const verifyOtpService = async (contact, otp_type, otp) => {
         // 1️⃣ Find latest valid OTP
         // console.log("Finding latest valid OTP for:", contact, otp_type, otpHash);
         const latestOtpId = await findLatestValidQuery(client, contact, otp_type, otpHash);
-        console.log(latestOtpId);
+        // console.log(latestOtpId);
 
         if (!latestOtpId) {
             await client.query("ROLLBACK");
