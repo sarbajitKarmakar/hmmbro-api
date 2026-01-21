@@ -60,9 +60,14 @@ const getProductsVariant = async (req, res) => {
         const pageCount = Math.ceil(Number(products.total_count) / limit)
         console.log(pageCount)
         res.status(200).json({
-            page,
-            pageCount,
-            data: products.res,
+            paginationModel:{
+                totalItems: Number(products.total_count),
+                itemsPerPage: limit,
+                currentPage: page,
+                CurrentPage:pageCount,
+                perPage:limit
+            },
+            products: products.res,
         });
         // res.send('Get all products - to be implemented');
     } catch (error) {

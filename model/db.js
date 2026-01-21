@@ -116,7 +116,7 @@ const getAllUsersQuery = async (limit, offset) => {
     username, 
     email, 
     phone, 
-    pic,
+    avatar,
     registered_at
     FROM users WHERE role = $3 
     LIMIT $1 OFFSET $2;`,
