@@ -12,6 +12,8 @@ import {
     activateAcc,
 } from '../controller/api.controller.common.js';
 
+import { createUser } from '../controller/api.controller.auth.js';
+
 
 
 
@@ -20,9 +22,11 @@ const router = express.Router();
 // getting all user by admin 
 router.route('/all')
     .get(getAllUser)
+    .post(searchUser);
 
-router.route('/search')
-        .post(searchUser);
+router.route('/create')
+    .post(createUser);
+
     // get specific user details by admin
 router.route('/:id')
     .get(getSpecificUser)

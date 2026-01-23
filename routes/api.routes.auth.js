@@ -1,14 +1,27 @@
 import express from 'express';
-import { 
+
+import upload from '../middleware/multer.js';
+
+import {
     refreshAccessToken,
+    generateOtpAndSendEmailController,
+    verifyOtpController,
     createUser,
-    loginUser
- } from '../controller/api.controller.auth.js';
+    loginUser,
+    test
+} from '../controller/api.controller.auth.js';
 
 const router = express.Router();
 
+
 router.route('/refresh-token')
-.post(refreshAccessToken);
+    .post(refreshAccessToken);
+
+router.route('/generate-otp-and-send-email')
+    .post(generateOtpAndSendEmailController);
+
+router.route('/verify-otp')
+    .post(verifyOtpController);
 
 router.route('/signup')
     .post(createUser);
@@ -16,6 +29,8 @@ router.route('/signup')
 router.route('/login')
     .post(loginUser);
 
+router.route('/test')
+    .post(upload.single('avatar'), test);
 
 
 export default router;

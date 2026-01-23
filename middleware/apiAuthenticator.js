@@ -1,5 +1,5 @@
 function apiAuthenticator(req, res, next) {
-  const validApiKey = process.env.API_KEY || 'my-secret-api-key';
+  const validApiKey = process.env.API_KEY ;
   
   const apiKey = req.header('x-api-key'); 
 

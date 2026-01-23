@@ -25,8 +25,10 @@
 //   connectionTimeoutMillis: 2000, // return error after 2s if no connection
 // });
 
-
 import { Pool } from "pg";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -38,11 +40,11 @@ const config = connectionString
   }
   : {
     // Your existing local fallback logic
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'sarb1928',
-    database: process.env.DB || 'HmmBro',
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB,
     // Other pool settings...
     max: 20,
     idleTimeoutMillis: 30000,
@@ -51,28 +53,95 @@ const config = connectionString
 
 const pool = new Pool(config);
 
-// ... rest of your code ...
+
+// operations on auth
+
+const insertOtpQuery = async (client,user_id, email, otpHash, otp_type, expiresAt) => {
+  const result = await client.query( `
+    INSERT INTO user_otps
+    (user_id, contact, otp_code, otp_type, expires_at)
+    VALUES
+    ($1, $2, $3, $4, $5)
+    RETURNING *
+    `,
+    [ user_id, email, otpHash, otp_type, expiresAt]
+  );
+  return result.rows[0];
+}
+
+const findLatestValidQuery = async (client, contact, otp_type, otpHash) => {
+  const result = await client.query(
+    `
+      SELECT id, user_id
+      FROM user_otps
+      WHERE contact = $1
+        AND otp_type = $2
+        AND otp_code = $3
+        AND is_verified = false
+        AND expires_at > NOW()
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+    [contact, otp_type, otpHash]
+  );
+  return result.rows[0];
+}
+
+
+const markOtpAsVerifiedQuery = async (client, otpId, userId) => {
+  await client.query(
+    `
+      UPDATE user_otps
+      SET is_verified = true,
+          verified_at = NOW()
+      WHERE id = $1
+      `,
+    [otpId]
+  );
+
+  await client.query(
+    `UPDATE users SET active = true WHERE id = $1`,
+    [userId]
+  );
+}
+
 
 // ------------------operations on user ------------------
 
 
 const getAllUsersQuery = async (limit, offset) => {
-  const res = await pool.query('SELECT u.id, u.username, u.email, u.phone, u.pic, c.total_count , c.registered_at FROM (SELECT * FROM users WHERE role = $3 ORDER BY id DESC LIMIT $1 OFFSET $2) u CROSS JOIN (SELECT COUNT(*) AS total_count  FROM users WHERE role = $3) c;', [limit, offset, 'user']);
-  return res.rows;
+
+  const res = await pool.query(`SELECT 
+    id, 
+    username, 
+    email, 
+    phone, 
+    avatar,
+    registered_at
+    FROM users WHERE role = $3 
+    LIMIT $1 OFFSET $2;`,
+    [limit, offset, 'user']);
+
+  const count = await pool.query(`SELECT COUNT(*) AS total_count FROM users WHERE role = $1;`, ['user']);
+  return { res: res.rows, total_count: count.rows[0].total_count };
 }
 
-const insertNewUserQuery = async (username, email, password, phone, pic) => {
-  const insertedUser = await pool.query('INSERT INTO users (username, email, password,phone, pic) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, email, phone, pic', [username, email, password, phone, pic]);
+const insertNewUserQuery = async (username, email, password, phone, imageUrl, publicId, active) => {
+  const insertedUser = await pool.query(`INSERT INTO users 
+    (username, email, password,phone, avatar, avatar_id, active)
+     VALUES ($1, $2, $3, $4, $5,$6,$7) 
+     RETURNING id, username, email, phone, avatar, avatar_id`,
+    [username, email, password, phone, imageUrl, publicId, active]);
   return insertedUser.rows[0];
 }
 
 const findUserByEmailQuery = async (email) => {
-  const res = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+  const res = await pool.query('SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL', [email]);
   return res.rows[0];
 }
 
 const findUserByUserIdQuery = async (id) => {
-  const res = await pool.query('SELECT id, role, active FROM users WHERE id = $1', [id]);
+  const res = await pool.query('SELECT id, role, active, avatar, avatar_id FROM users WHERE id = $1', [id]);
   return res.rows[0];
 }
 
@@ -81,7 +150,7 @@ const updateUserQuery = async (userId, fields, values) => {
   const update = await pool.query(`UPDATE users 
    SET ${fields.join(', ')} 
    WHERE id = $${values.length + 1}
-   RETURNING id,username, email, phone, pic, active;`,
+   RETURNING id,username, email, phone, avatar, active;`,
     [...values, userId]);
   return update.rows[0];
 }
@@ -91,23 +160,25 @@ const deactivateAccQuery = async (id) => {
     `UPDATE users 
    SET active = false 
    WHERE id = $1 
-   RETURNING username, pic, active;`,
+   RETURNING username, avatar, active;`,
     [id]
   );
 }
 
 const activateAccQuery = async (id) => {
-  await pool.query(
+
+  const result = await pool.query(
     `UPDATE users 
    SET active = true 
    WHERE id = $1 
-   RETURNING *;`,
+   RETURNING username, avatar, active;;`,
     [id]
   );
+  return result.rows[0];
 }
 
 const getSpecificUserQuery = async (id) => {
-  const res = await pool.query('SELECT id,username,email,phone,pic,role,active FROM users WHERE id = $1', [id]);
+  const res = await pool.query('SELECT id,username,email,phone,avatar,role,active FROM users WHERE id = $1', [id]);
   return res.rows[0];
 }
 
@@ -122,6 +193,8 @@ const searchUserQuery = async (value, limit, offset) => {
   username,
   email,
   phone,
+  avatar,
+  avatar_id,
   active,
   role,
   COUNT(*) OVER() AS total_count
@@ -203,8 +276,8 @@ FROM products p
 LEFT JOIN product_variants pv ON pv.product_id = p.id
 LEFT JOIN variant v ON pv.variant_id = v.id
 WHERE pv.delete_at IS NOT NULL
-LIMIT $1 OFFSET $2;`,[limit, offset]);
-const count = await pool.query(`
+LIMIT $1 OFFSET $2;`, [limit, offset]);
+  const count = await pool.query(`
 select count(*) as total_count from product_variants
 WHERE delete_at IS NOT NULL
 `,);
@@ -400,6 +473,9 @@ const createVariantQuery = async (variant_ml) => {
 export default pool;
 
 export {
+  insertOtpQuery,
+  findLatestValidQuery,
+  markOtpAsVerifiedQuery,
   getAllUsersQuery,
   insertNewUserQuery,
   findUserByEmailQuery,

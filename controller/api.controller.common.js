@@ -17,7 +17,7 @@ const getSpecificUser = async (req, res) => {
         if (!userDetails) return res.status(404).json({ message: "User not found" });
         return res.status(200).json({ message: "User Details Updated", userDetails });
     } catch (error) {
-        console.log(error);
+        // console.log(error);
         
         return res.status(500).json("Error fetching users details , " + error);
     }
