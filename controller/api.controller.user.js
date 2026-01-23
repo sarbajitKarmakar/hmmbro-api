@@ -22,7 +22,8 @@ const specificUpdateUser = async (req, res) => {
     // console.log(req.body.role);
     const targetId = req.params.id ? req.params.id : req.user.id;
     let result, getUser;
-
+    
+    // console.log(req.body);
     // 
     if (req.body.password) return res.status(403).json({ message: "Password change is not allowed from this endpoint" });
 
@@ -40,7 +41,7 @@ const specificUpdateUser = async (req, res) => {
 
     const field = Object.keys(req.body).filter(key => USER__UPDATABLE_FEILDS.includes(key));
 
-    if (field.length === 0) {
+    if (field.length === 0 && !req.file) {
         return res.status(400).json({ message: "No updatable fields provided" });
     }
     // console.log(field);
@@ -60,11 +61,11 @@ const specificUpdateUser = async (req, res) => {
         
         if (req.file) {
                 getUser = await findUserByUserIdQuery(targetId);
-                if (!getUser) {
+                if (!getUser) {// check user exists before updating image
                     return res.status(404).json({ message: "User not found" });
                 }
 
-            if (req.body.email) {
+            if (req.body.email) { // check email already exists before updating image
                 const existingEmailUser = await findUserByEmailQuery(req.body.email);
                 if (existingEmailUser && parseInt(existingEmailUser.id) !== parseInt(targetId)) {
                     return res.status(409).json({ message: "Email already exists" });

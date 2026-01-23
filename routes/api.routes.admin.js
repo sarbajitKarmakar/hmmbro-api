@@ -22,12 +22,11 @@ const router = express.Router();
 // getting all user by admin 
 router.route('/all')
     .get(getAllUser)
+    .post(searchUser);
 
 router.route('/create')
     .post(createUser);
 
-router.route('/search')
-        .post(searchUser);
     // get specific user details by admin
 router.route('/:id')
     .get(getSpecificUser)

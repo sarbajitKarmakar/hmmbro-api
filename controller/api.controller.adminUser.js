@@ -6,8 +6,8 @@ import {
 
 const searchUser = async (req, res) => {
     // console.log("not here")
-    if (!req.query.value) return res.status(400).json({ message: "Please Sent any value in query to search" })
-    const value = req.query.value
+    if (!req.body.value) return res.status(400).json({ message: "Please Sent any value in body as value: to search" })
+    const value = req.body.value
         .toString()
         .trim()// remove all unicode leading spaces
         .replace(/^["']|["']$/g, ""); //removing unwanted ""
