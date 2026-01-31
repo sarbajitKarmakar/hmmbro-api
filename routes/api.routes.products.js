@@ -36,7 +36,7 @@ router.route('/')
 router.route('/deleted')
     .get(authenticateUser, checkAdmin, getDeletedProducts);  //get all products including deleted ones
 
-    router.route('/product-variant')
+router.route('/product-variant')
     .get(authenticateUser, checkAdmin, getProductsVariant)  //get all products variants
 
 router.route('/variant')

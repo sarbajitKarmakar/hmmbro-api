@@ -24,11 +24,20 @@ const searchUser = async (req, res) => {
     
     try {
         const searchedVaule = await searchUserQuery(value, limit, offset);
-        if (searchedVaule.length === 0) return res.status(404).json({ message: "No user found" });
-        const pageCount = Math.ceil(Number(searchedVaule[0].total_count) / limit);
-        res.status(200).json({page,pageCount,searchedVaule})
+        if (searchedVaule.rows.length === 0) return res.status(404).json({ message: "No user found" });
+        
+        const pageCount = Math.ceil(Number(searchedVaule.total_count) / limit);
+        res.status(200).json({
+            paginationModel:{
+                currentpage: page,
+                pageCount:pageCount,
+                totalRecords: searchedVaule.total_count,
+                perPage: limit
+            },
+            data: searchedVaule.rows,});
     } catch (error) {
         // console.log(`Error occure in search user :- ${error}`);
+        // console.log(error)
         return res.status(500).json("Error in search user: " + error);
     }
 }
@@ -46,13 +55,13 @@ const getAllUser = async (req, res) => {
         // console.log(pageCount);
 
         return res.status(200).json({
-            data: allUser.res,
             paginationModel:{
                 currentpage: page,
                 pageCount:pageCount,
-                totalRecords: Number(allUser.total_count),
+                totalRecords: allUser.total_count,
                 perPage: limit
-            }
+            },
+            data: allUser.res,
         });
     } catch (error) {
         return res.status(500).json("Error fetching users , " + error);

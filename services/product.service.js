@@ -1,5 +1,6 @@
 import pool,
 {
+    getSpecificProductByNameQuery,
     insertNewProductQuery,
     insertNewProductVariant,
     deleteProductQuery,
@@ -8,36 +9,54 @@ import pool,
     recoverProductVariantOnProductDeleteQuery,
 } from '../model/db.js';
 
+import productCodeGen from '../utils/productCodeGen.js';
+
+
 
 const createProductService = async (body) => {
     const {
+        name,
         type,
-        productName,
-        variant_id,
+        variant,
         price,
         stock = 0,
-        sku,
         ispublish = false,
-        img_urls
+        // img_urls
     } = body;
 
+    /*
+    name: string,
+    type: string,
+    variant:{
+        variant_id: 2,
+        variant_ml: 30,
+    } ,
+    */
+
     const client = await pool.connect()
-    let productId;
+    let productId, productDetails; // to hold product id and details
 
     try {
         await client.query('BEGIN');
         // console.log("inside service")
-        if (productName) {
+        
+            const trimmedName = name.trim();
             // console.log("inside product name")
-            const result = await insertNewProductQuery(client, productName, type);
-            // console.log("Inserted new product with ID:", result.id);
-            productId = result.id;
+            productDetails = await getSpecificProductByNameQuery(trimmedName);
 
-        } else { productId = body.productId }
+            if(productDetails){ // if product exists, use existing product id  
 
-        if (variant_id) {
-            const published_at = ispublish ? 'NOW()' : null;
-            const payload = [productId, variant_id, price, stock, sku, published_at, img_urls];
+                productId = productDetails.id;
+
+            }else{ // else create new product
+                const productCode = productCodeGen(trimmedName);
+                productDetails = await insertNewProductQuery(client, name, type, productCode);
+                productId = productDetails.id;
+            }
+
+            const sku = `${productDetails.product_code}-${variant.variant_ml}`;
+            const slug = `${trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${variant.variant_ml}ml`;
+            const payload = [productId, variant.variant_id, price, stock, sku, img_urls, slug];
             // console.log(payload.includes(undefined))
             const img = img_urls?.length || 0;
             if (ispublish && (Number(img) === 0 || payload.includes(undefined))) {
@@ -48,7 +67,6 @@ const createProductService = async (body) => {
             }
 
             await insertNewProductVariant(client, payload);
-        }
         await client.query('COMMIT');
     } catch (error) {
         await client.query('ROLLBACK');
