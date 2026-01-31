@@ -12,7 +12,9 @@ import {
     activateAcc,
 } from '../controller/api.controller.common.js';
 
-import { createUser } from '../controller/api.controller.auth.js';
+import { 
+    createUser 
+} from '../controller/api.controller.auth.js';
 
 
 

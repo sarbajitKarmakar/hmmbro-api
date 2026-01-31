@@ -113,7 +113,9 @@ const getSpecificProductVariant = async (req, res) => {
 const insertNewProduct = async (req, res) => {
     // res.json({status:"ok"});
     // console.log(req.body);
-    if (!req.body.productName && !req.body.productId) return res.status(400).json({ error: "Please provide productName or productId" })
+    if (!req.body.name) return res.status(400).json({ message: "Please provide product name" })
+    if (!req.body.variant) return res.status(400).json({ message: "Please provide variant details" })
+
     try {
         await createProductService(req.body);
 
@@ -121,13 +123,13 @@ const insertNewProduct = async (req, res) => {
     } catch (error) {
         // console.log(`Error occured to insert new Product :- ${error.code}`);
 
-        if (error.constraint === "unique_sku") {
-            return res.status(409).json({
-                message: "SKU already exists. Please use a Unique SKU."
-            });
-        }
+        // if (error.constraint === "unique_sku") {
+        //     return res.status(409).json({
+        //         message: "SKU already exists. Please use a Unique SKU."
+        //     });
+        // }
 
-        if (error.constraint === "product_variants_active_unique_idx") {
+        if (error.constraint === "product_variants_active_unique_idx" || error.constraint === "unique_sku") {
             return res.status(409).json({
                 message: "The variant of this product is already exist"
             })
@@ -155,7 +157,8 @@ const insertNewProduct = async (req, res) => {
             })
         }
 
-        res.status(500).json({ error: 'Failed to create product: ' + error });
+        // res.status(500).json({ message: 'Failed to create product: ' + error });
+        console.log(error);
     }
 };
 

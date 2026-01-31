@@ -56,15 +56,15 @@ const pool = new Pool(config);
 
 // operations on auth
 
-const insertOtpQuery = async (client,user_id, email, otpHash, otp_type, expiresAt) => {
-  const result = await client.query( `
+const insertOtpQuery = async (client, user_id, email, otpHash, otp_type, expiresAt) => {
+  const result = await client.query(`
     INSERT INTO user_otps
     (user_id, contact, otp_code, otp_type, expires_at)
     VALUES
     ($1, $2, $3, $4, $5)
     RETURNING *
     `,
-    [ user_id, email, otpHash, otp_type, expiresAt]
+    [user_id, email, otpHash, otp_type, expiresAt]
   );
   return result.rows[0];
 }
@@ -117,9 +117,14 @@ const getAllUsersQuery = async (limit, offset) => {
     email, 
     phone, 
     avatar,
-    registered_at
+	role,
+	active,
+    registered_at,
+	deleted_at,
+	updated_at
     FROM users WHERE role = $3 
-    LIMIT $1 OFFSET $2;`,
+	order by registered_at desc
+  LIMIT $1 OFFSET $2;`,
     [limit, offset, 'user']);
 
   const count = await pool.query(`SELECT COUNT(*) AS total_count FROM users WHERE role = $1;`, ['user']);
@@ -183,34 +188,46 @@ const getSpecificUserQuery = async (id) => {
 }
 
 const deleteUserQuery = async (id) => {
-  const res = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [id]);
+  const res = await pool.query('UPDATE users SET deleted_at = NOW() WHERE id = $1 RETURNING *', [id]);
   return res.rows[0];
 }
 
 const searchUserQuery = async (value, limit, offset) => {
-  const searchValue = await pool.query(`SELECT
-  id,
-  username,
-  email,
-  phone,
-  avatar,
-  avatar_id,
-  active,
-  role,
-  COUNT(*) OVER() AS total_count
-FROM users
- WHERE role = 'user'
-AND (
-  phone ILIKE $1 OR
+  const searchValue = await pool.query(`
+SELECT *
+FROM (
+  SELECT 
+  id, 
+    username, 
+    email, 
+    phone, 
+    avatar,
+	  role,
+	  active,
+    registered_at,
+	  deleted_at,
+	  updated_at
+  FROM users
+  ORDER BY registered_at DESC
+  LIMIT $2 OFFSET $3
+) page_window
+WHERE role = 'user'
+  AND (
+  CAST(phone AS TEXT) ILIKE $1 OR
   CAST(id AS TEXT) ILIKE $1 OR
   username ILIKE $1 OR
   email ILIKE $1
 )
-ORDER BY id DESC
-LIMIT $2 OFFSET $3;`, [`%${value}%`, limit, offset]);
+ORDER BY registered_at DESC;
+`, [`%${value}%`, limit, offset]);
 
+const total_count = await pool.query(`
+    SELECT COUNT(*) AS total_count
+    FROM users
+    WHERE role = 'user'
+    `)
 
-  return searchValue.rows;
+  return { res: searchValue.rows, total_count: total_count.rows[0].total_count };
 }
 
 // -------------------operations on user------------------- 
@@ -296,6 +313,13 @@ const getSpecificProductAdminQuery = async (id) => {
   return res.rows[0];
 }
 
+export const getSpecificProductByNameQuery = async (name) => {
+  const res = await pool.query(`SELECT * FROM products 
+    WHERE name ilike $1
+    `, [name])
+  return res.rows[0];
+}
+
 const getSpecificProductVariantAdminQuery = async (id) => {
   const res = await pool.query(`
 SELECT 
@@ -321,12 +345,13 @@ WHERE pv.id = $1
   return res.rows[0];
 }
 
-const insertNewProductQuery = async (client, productName, type) => {
+
+const insertNewProductQuery = async (client, name, type, productCode) => {
   const res = await client.query(
-    `INSERT INTO products (name, type)
-                   VALUES ($1, $2)
-                   RETURNING id`,
-    [productName, type]
+    `INSERT INTO products (name, type , product_code)
+                   VALUES ($1, $2, $3)
+                   RETURNING *`,
+    [name, type, productCode]
   );
 
   return res.rows[0];
@@ -336,7 +361,7 @@ const insertNewProductVariant = async (client, payload) => {
   await client.query(
     `INSERT INTO 
     product_variants 
-    (product_id, variant_id, price, stock, sku, published_at, img_urls)
+    (product_id, variant_id, price, stock, sku, img_urls, slug)
     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
     payload
   );
