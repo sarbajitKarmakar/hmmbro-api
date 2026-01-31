@@ -227,7 +227,7 @@ const total_count = await pool.query(`
     WHERE role = 'user'
     `)
 
-  return { rows: searchValue.rows, total_count: total_count.rows[0].total_count };
+  return { res: searchValue.rows, total_count: total_count.rows[0].total_count };
 }
 
 // -------------------operations on user------------------- 
