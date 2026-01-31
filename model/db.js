@@ -188,7 +188,7 @@ const getSpecificUserQuery = async (id) => {
 }
 
 const deleteUserQuery = async (id) => {
-  const res = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [id]);
+  const res = await pool.query('UPDATE users SET deleted_at = NOW() WHERE id = $1 RETURNING *', [id]);
   return res.rows[0];
 }
 
