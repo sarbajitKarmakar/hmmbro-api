@@ -3,7 +3,7 @@ import express from 'express';
 import { 
     getAllUser,
     deleteUser,
-    searchUser,
+    // searchUser,
 } from '../controller/api.controller.adminUser.js';
 
 import {
@@ -24,8 +24,6 @@ const router = express.Router();
 // getting all user by admin 
 router.route('/all')
     .get(getAllUser)
-    .post(searchUser);
-
 router.route('/create')
     .post(createUser);
 

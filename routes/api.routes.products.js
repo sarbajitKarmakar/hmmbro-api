@@ -3,6 +3,8 @@ import express from "express";
 import authenticateUser from "../middleware/authenticateUser.js";
 import checkAdmin from "../middleware/checkAdmin.js";
 
+import upload from '../middleware/multer.js'
+
 import {
     getProducts,
     getProductsVariant,
@@ -31,7 +33,7 @@ const router = express.Router();
 
 router.route('/')
     .get(authenticateUser, checkAdmin, getProducts)  //get all products 
-    .post(authenticateUser, checkAdmin, insertNewProduct); //insert new product (admin only)
+    .post(authenticateUser, checkAdmin, upload.any(),insertNewProduct); //insert new product (admin only)
 
 router.route('/deleted')
     .get(authenticateUser, checkAdmin, getDeletedProducts);  //get all products including deleted ones

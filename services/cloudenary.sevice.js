@@ -39,7 +39,6 @@ export const getImageUrl = (publicId, options = {}) => {
 // Delete image using public_id
 export const deleteImage = async (publicId) => {
   const result = await cloudinary.uploader.destroy(publicId);
-  // console.log('not here')
 
   if (result.result !== "ok" && result.result !== "not found") {
     // throw new Error("Failed to delete image");

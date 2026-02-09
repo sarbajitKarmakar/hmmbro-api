@@ -122,7 +122,7 @@ const getAllUsersQuery = async (limit, offset) => {
     registered_at,
 	deleted_at,
 	updated_at
-    FROM users WHERE role = $3 
+    FROM users WHERE role = $3 AND deleted_at IS NULL
 	order by registered_at desc
   LIMIT $1 OFFSET $2;`,
     [limit, offset, 'user']);
@@ -358,13 +358,18 @@ const insertNewProductQuery = async (client, name, type, productCode) => {
 }
 
 const insertNewProductVariant = async (client, payload) => {
-  await client.query(
+  const queryText = payload.map((_,i) => `($${i*6+1},$${i*6+2},$${i*6+3},$${i*6+4},$${i*6+5},$${i*6+6})`)
+  .join(', ')
+  // productId, variant.variant_id, variant.price, variant.stock, sku, slug
+  const res =  await client.query(
     `INSERT INTO 
     product_variants 
-    (product_id, variant_id, price, stock, sku, img_urls, slug)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    payload
+    (product_id, variant_id, price, stock, sku, slug)
+    VALUES ${queryText} RETURNING id`,
+    payload.flat()
   );
+
+  return res.rows;
 }
 
 const updateProductQuery = async (id, feild, value) => {
@@ -484,6 +489,12 @@ ORDER BY p.name
   return searchValue.rows;
 }
 
+export const getVariantDetails = async (client, variant_ml_arr) => {
+  const res = await client.query(`
+    SELECT * FROM variant WHERE variant_ml = ANY ($1)`, [variant_ml_arr]);
+  return res.rows;
+} 
+
 const getAllVariantsQuery = async () => {
   const res = await pool.query('SELECT * FROM variant;');
   return res.rows;
@@ -491,6 +502,16 @@ const getAllVariantsQuery = async () => {
 
 const createVariantQuery = async (variant_ml) => {
   await pool.query('INSERT INTO variant (variant_ml) VALUES ($1);', [variant_ml]);
+}
+
+export const productImageUploadQuery = async (client, imgpayload, queryText) =>{
+  // productVariantId, result.url, result.publicId
+  await client.query(`
+    INSERT INTO product_images
+    (product_variant_id, image_url, image_id)
+    VALUES
+    ${queryText}
+  `, imgpayload)
 }
 //-------------------operation on products-------------------
 

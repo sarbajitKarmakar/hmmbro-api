@@ -7,10 +7,7 @@ import {
     searchUserService
 } from '../services/adminUser.service.js';
 
-const searchUser = async (req, res) => {
-    // console.log("not here")
 
-}
 
 
 
@@ -84,5 +81,5 @@ const deleteUser = async (req, res) => {
 export {
     getAllUser,
     deleteUser,
-    searchUser
+    // searchUser
 }

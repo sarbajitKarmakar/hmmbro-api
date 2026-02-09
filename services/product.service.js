@@ -7,69 +7,105 @@ import pool,
     deleteProductVariantOnProductDeleteQuery,
     recoverProductQuery,
     recoverProductVariantOnProductDeleteQuery,
+    getVariantDetails,
+    productImageUploadQuery,
 } from '../model/db.js';
 
 import productCodeGen from '../utils/productCodeGen.js';
 
+import { 
+    uploadImage,
+    deleteImage,
+ } from './cloudenary.sevice.js'
 
 
-const createProductService = async (body) => {
+
+const createProductService = async (req) => {
     const {
         name,
         type,
-        variant,
-        price,
-        stock = 0,
-        ispublish = false,
+        variants,
         // img_urls
-    } = body;
+    } = req.body;
 
-    /*
-    name: string,
-    type: string,
-    variant:{
-        variant_id: 2,
-        variant_ml: 30,
-    } ,
-    */
+    const publicIds = [];// storing only public id of product images to delete all recent uploaded image if got error
+    // decleared variable here for blocked scope
 
     const client = await pool.connect()
     let productId, productDetails; // to hold product id and details
-
+    const jsonFormattedVariants = JSON.parse(variants)
     try {
         await client.query('BEGIN');
-        // console.log("inside service")
-        
-            const trimmedName = name.trim();
-            // console.log("inside product name")
-            productDetails = await getSpecificProductByNameQuery(trimmedName);
 
-            if(productDetails){ // if product exists, use existing product id  
+        const trimmedName = name.trim();
 
-                productId = productDetails.id;
+        productDetails = await getSpecificProductByNameQuery(trimmedName);
 
-            }else{ // else create new product
-                const productCode = productCodeGen(trimmedName);
-                productDetails = await insertNewProductQuery(client, name, type, productCode);
-                productId = productDetails.id;
-            }
+        if (productDetails) { // if product exists, use existing product id  
 
+            productId = productDetails.id;
+
+        } else { // else create new product
+            const productCode = productCodeGen(trimmedName);
+            productDetails = await insertNewProductQuery(client, name, type, productCode);
+            productId = productDetails.id;
+        }
+
+
+        //storing variant_ml in an array to check if they exist in the variant table
+        const variant_ml_arr = jsonFormattedVariants.map(variant => variant.variant_ml);
+
+        //get only the variants that exist in the variant table to avoid foreign key constraint error when inserting into product_variant table
+        const variantDetails = await getVariantDetails(client, variant_ml_arr);
+
+        //store the variant_ml of the existing variants in a set for easy lookup
+        const existingVariantMLs = new Set(variantDetails.map(variant => variant.variant_ml));
+
+        //filter the variants to get only the ones that exist in the variant table and are included in the request body
+        const applyableVariant = jsonFormattedVariants
+            .filter(variant => existingVariantMLs.has(variant.variant_ml))
+            .map(variant => {
+                variant.variant_id = variantDetails.find(v => v.variant_ml === variant.variant_ml)?.id
+                return variant;
+            });
+
+        if (applyableVariant.length === 0) {
+            throw new Error("None of the provided variants exist in the database.");
+        }
+
+        const payload = applyableVariant.map(variant => { // create payload for each variant to be inserted into product_variant table
             const sku = `${productDetails.product_code}-${variant.variant_ml}`;
             const slug = `${trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${variant.variant_ml}ml`;
-            const payload = [productId, variant.variant_id, price, stock, sku, img_urls, slug];
-            // console.log(payload.includes(undefined))
-            const img = img_urls?.length || 0;
-            if (ispublish && (Number(img) === 0 || payload.includes(undefined))) {
-                // console.log("aaaaaa")
-                //stop publishing if any field is missing
+            return [productId, variant.variant_id, variant.price, variant.stock, sku, slug];
+        })
 
-                throw new Error("To publish a product, all fields must be completed with minimum single image.");
-            }
+        const insertedId = await insertNewProductVariant(client, payload);
 
-            await insertNewProductVariant(client, payload);
+        if (req.files) {
+            const imgpayload = []; // making image payload
+            const queryText = []; // query text ($1,$2)
+
+            let productVariantId, i = 0;
+            for (const file of req.files) {
+                const fieldKey = file.fieldname.split("][")[0] + "]";
+                productVariantId = insertedId[Number(fieldKey.match(/variants\[(\d+)\]/)[1])]["id"]; //getting variant id 
+                const result = await uploadImage(file.path, 'products');
+                imgpayload.push(productVariantId, result.url, result.publicId);
+                publicIds.push(result.publicId);
+                queryText.push(`($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`);
+                i++;
+            };
+
+            await productImageUploadQuery(client, imgpayload, queryText.join(', '));
+
+
+        }
         await client.query('COMMIT');
     } catch (error) {
-        await client.query('ROLLBACK');
+        for (const id of publicIds){
+            await deleteImage(id);
+        }
+            await client.query('ROLLBACK');
         throw error;
     } finally {
         client.release();
@@ -87,8 +123,8 @@ const deleteProductService = async (productId) => {
             throw new Error("Product not found or already deleted.");
         }
 
-        const deletedProductVariants = await deleteProductVariantOnProductDeleteQuery(productId);
-        // console.log(deletedProductVariants);
+        const deletedProductjsonFormattedVariants = await deleteProductVariantOnProductDeleteQuery(productId);
+        // console.log(deletedProductjsonFormattedVariants);
         // console.log("inside service")
         await client.query('COMMIT');
     } catch (err) {
@@ -110,10 +146,10 @@ const recoverProductService = async (productId) => {
         if (!recoveredProduct) {
             throw new Error("Product not found or already recovered.");
         }
-        
-        const recoveredProductVariants = await recoverProductVariantOnProductDeleteQuery(productId);
+
+        const recoveredProductjsonFormattedVariants = await recoverProductVariantOnProductDeleteQuery(productId);
         // console.log("trouble")
-        // console.log(deletedProductVariants);
+        // console.log(deletedProductjsonFormattedVariants);
         // console.log("inside service")
         await client.query('COMMIT');
     } catch (err) {

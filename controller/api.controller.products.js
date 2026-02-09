@@ -111,23 +111,16 @@ const getSpecificProductVariant = async (req, res) => {
 }
 
 const insertNewProduct = async (req, res) => {
-    // res.json({status:"ok"});
-    // console.log(req.body);
-    if (!req.body.name) return res.status(400).json({ message: "Please provide product name" })
-    if (!req.body.variant) return res.status(400).json({ message: "Please provide variant details" })
+   
+    if (!req.body.name) return res.status(400).json({ message: "Please provide product name" });
+    if (!req.body.variants) return res.status(400).json({ message: "Please provide atleast a single variant details" });
 
     try {
-        await createProductService(req.body);
+        // console.log(req.files)
+        await createProductService(req);
 
         res.status(201).json({ message: "Product Created" });
     } catch (error) {
-        // console.log(`Error occured to insert new Product :- ${error.code}`);
-
-        // if (error.constraint === "unique_sku") {
-        //     return res.status(409).json({
-        //         message: "SKU already exists. Please use a Unique SKU."
-        //     });
-        // }
 
         if (error.constraint === "product_variants_active_unique_idx" || error.constraint === "unique_sku") {
             return res.status(409).json({
@@ -151,13 +144,19 @@ const insertNewProduct = async (req, res) => {
             })
         }
 
+        // if (error.message = "None of the provided variants exist in the database."){
+        //     return res.status(409).json({
+        //         message: error.message
+        //     })
+        // }
+
         if (error.message === "To publish a product, all fields must be completed with minimum single image.") {
             return res.status(422).json({
                 message: error.message
             })
         }
 
-        // res.status(500).json({ message: 'Failed to create product: ' + error });
+        res.status(500).json({ message: 'Failed to create product: ' + error });
         console.log(error);
     }
 };
