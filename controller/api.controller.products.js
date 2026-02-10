@@ -1,5 +1,6 @@
 import {
     getAllProductsAdminQuery,
+    getAllProductVariantAdminQuery,
     getAllProductsVariantAdminQuery,
     getSpecificProductAdminQuery,
     getSpecificProductVariantAdminQuery,
@@ -16,6 +17,8 @@ import {
     getAllDeletedProductsAdminQuery
 } from "../model/db.js";
 
+import { UPDATABLE_FEILDS }from '../constants/product.constants.js'
+
 import {
     createProductService,
     deleteProductService,
@@ -31,13 +34,17 @@ const getProducts = async (req, res) => {
 
     try {
         
-        const products = await getAllProductsAdminQuery(limit, offset)
-        // console.log(products)
-        // const pageCount = Math.ceil(Number(products.total_count) / limit)
+        const products = await getAllProductVariantAdminQuery(limit, offset)
+        const pageCount = Math.ceil(Number(products.total_count) / limit)
         // console.log(pageCount)
         res.status(200).json({
-            page,
-            data: products,
+             paginationModel: {
+                currentpage: page,
+                pageCount: pageCount,
+                totalRecords: Number(products.total_count),
+                perPage: limit
+            },
+            data:products.res
         });
         // res.send('Get all products - to be implemented');
     } catch (error) {
@@ -116,7 +123,7 @@ const insertNewProduct = async (req, res) => {
     if (!req.body.variants) return res.status(400).json({ message: "Please provide atleast a single variant details" });
 
     try {
-        // console.log(req.files)
+        
         await createProductService(req);
 
         res.status(201).json({ message: "Product Created" });
@@ -208,15 +215,7 @@ const updateProduct = async (req, res) => {
 }
 
 const updateProductVariants = async (req, res) => {
-    const UPDATABLE_FEILDS = [
-        'product_id',
-        'variant_id',
-        'price',
-        'stock',
-        'sku',
-        'ispublish',
-        'img_urls'
-    ];
+    
     try {
         const id = req.params.id;
         if (!req.body || Object.keys(req.body).length === 0) {

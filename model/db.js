@@ -320,6 +320,37 @@ export const getSpecificProductByNameQuery = async (name) => {
   return res.rows[0];
 }
 
+export const getAllProductVariantAdminQuery = async (limit, offset) =>{
+  const res = await pool.query(`
+    SELECT 
+p.id as product_id,
+pv.id as productVariant_id,
+v.id as variant_id,
+pv.sku,
+p.name,
+v.variant_ml as ml,
+img.image_url,
+img.image_id,
+p.type,
+pv.price,
+pv.stock,
+pv.published_at,
+pv.created_at,
+pv.updated_at,
+pv.delete_at
+FROM products p
+LEFT JOIN product_variants pv ON pv.product_id = p.id
+LEFT JOIN variant v ON pv.variant_id = v.id
+LEFT JOIN product_images img on pv.id = img.product_variant_id
+WHERE img.isprimary = true AND pv.delete_at IS NULL
+LIMIT $1 OFFSET $2 `,
+[limit, offset]
+)
+
+const count = await pool.query(`SELECT COUNT(*) AS total_count FROM product_variants WHERE delete_at IS NULL;`);
+return {res: res.rows, total_count: count.rows[0].total_count};
+}
+
 const getSpecificProductVariantAdminQuery = async (id) => {
   const res = await pool.query(`
 SELECT 
@@ -508,7 +539,7 @@ export const productImageUploadQuery = async (client, imgpayload, queryText) =>{
   // productVariantId, result.url, result.publicId
   await client.query(`
     INSERT INTO product_images
-    (product_variant_id, image_url, image_id)
+    (product_variant_id, image_url, image_id, isprimary)
     VALUES
     ${queryText}
   `, imgpayload)

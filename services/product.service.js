@@ -12,6 +12,7 @@ import pool,
 } from '../model/db.js';
 
 import productCodeGen from '../utils/productCodeGen.js';
+import { deleteLocalFile } from '../utils/file.js'
 
 import { 
     uploadImage,
@@ -25,10 +26,9 @@ const createProductService = async (req) => {
         name,
         type,
         variants,
-        // img_urls
     } = req.body;
 
-    const publicIds = [];// storing only public id of product images to delete all recent uploaded image if got error
+    const errHandelData = [];// storing only public id of product images to delete all recent uploaded image if got error
     // decleared variable here for blocked scope
 
     const client = await pool.connect()
@@ -84,17 +84,25 @@ const createProductService = async (req) => {
         if (req.files) {
             const imgpayload = []; // making image payload
             const queryText = []; // query text ($1,$2)
+            const prodVariants = []
 
-            let productVariantId, i = 0;
+            let productVariantId, i = 0 , defaultPrimaryImg = false;
             for (const file of req.files) {
                 const fieldKey = file.fieldname.split("][")[0] + "]";
-                productVariantId = insertedId[Number(fieldKey.match(/variants\[(\d+)\]/)[1])]["id"]; //getting variant id 
+                productVariantId = insertedId[Number(fieldKey.match(/variants\[(\d+)\]/)[1])]["id"]; //getting variant id
+                if (!prodVariants.includes(fieldKey)){ // to set default primary image of every 1st image of every variant
+                     prodVariants.push(fieldKey)
+                     defaultPrimaryImg = true
+                }
                 const result = await uploadImage(file.path, 'products');
-                imgpayload.push(productVariantId, result.url, result.publicId);
-                publicIds.push(result.publicId);
-                queryText.push(`($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`);
+                imgpayload.push(productVariantId, result.url, result.publicId, defaultPrimaryImg);
+                errHandelData.push({publicId: result.publicId, path: file.path});
+                queryText.push(`($${i * 4 + 1}, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4})`);
+
+                defaultPrimaryImg = false
                 i++;
             };
+           
 
             await productImageUploadQuery(client, imgpayload, queryText.join(', '));
 
@@ -102,8 +110,9 @@ const createProductService = async (req) => {
         }
         await client.query('COMMIT');
     } catch (error) {
-        for (const id of publicIds){
-            await deleteImage(id);
+        for (const data of errHandelData){
+            await deleteImage(data.publicId);
+            await deleteLocalFile(data.path)
         }
             await client.query('ROLLBACK');
         throw error;

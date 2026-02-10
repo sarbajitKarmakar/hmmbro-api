@@ -51,7 +51,8 @@ router.route('/search')
 
 router.route('/:id')
     .get(authenticateUser, checkAdmin, getSpecificProduct) //get specific product by id (admin only)
-    .patch(authenticateUser, checkAdmin, updateProduct)//edit product (admin only)
+    // .patch(authenticateUser, checkAdmin, updateProduct)//edit product (admin only)
+    .patch(authenticateUser, checkAdmin, updateProductVariants);//edit product variant (admin only)
 
 router.route('/:id/delete')
     .put(authenticateUser, checkAdmin, deleteProduct); //soft delete product (admin only)
@@ -62,7 +63,6 @@ router.route(`/:id/recover`)
 
 router.route('/product-variant/:id')
     .get(authenticateUser, checkAdmin, getSpecificProductVariant) //get specific product by id (admin only)
-    .patch(authenticateUser, checkAdmin, updateProductVariants);//edit product variant (admin only)
 
 router.route('/product-variant/:id/delete')
     .put(authenticateUser, checkAdmin, deleteProductVariant); //soft delete product (admin only)
