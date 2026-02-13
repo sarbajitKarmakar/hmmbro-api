@@ -14,16 +14,24 @@ import {
     searchProductQuery,
     getAllVariantsQuery,
     createVariantQuery,
-    getAllDeletedProductsAdminQuery
+    getAllDeletedProductsAdminQuery,
+    getSpecificProductByNameQuery,
+    insertNewProductQuery
 } from "../model/db.js";
 
-import { UPDATABLE_FEILDS }from '../constants/product.constants.js'
+import {
+    UPDATABLE_FEILDS,
+    PRODUCT_UPDATABLE_FEILDS,
+} from '../constants/product.constants.js'
 
 import {
     createProductService,
     deleteProductService,
-    recoverProductService
+    recoverProductService,
+    updateProductService
 } from "../services/product.service.js"
+
+import productCodeGen from '../utils/productCodeGen.js';
 
 const getProducts = async (req, res) => {
 
@@ -33,22 +41,22 @@ const getProducts = async (req, res) => {
     const offset = (page - 1) * limit;
 
     try {
-        
+
         const products = await getAllProductVariantAdminQuery(limit, offset)
         const pageCount = Math.ceil(Number(products.total_count) / limit)
         // console.log(pageCount)
         res.status(200).json({
-             paginationModel: {
+            paginationModel: {
                 currentpage: page,
                 pageCount: pageCount,
                 totalRecords: Number(products.total_count),
                 perPage: limit
             },
-            data:products.res
+            data: products.res
         });
         // res.send('Get all products - to be implemented');
     } catch (error) {
-        console.log(`Error occured to get all Products :- ${error}`);
+        console.log(error);
         res.status(500).json({ error: 'Failed to retrieve products' });
     }
 
@@ -67,12 +75,12 @@ const getProductsVariant = async (req, res) => {
         const pageCount = Math.ceil(Number(products.total_count) / limit)
         console.log(pageCount)
         res.status(200).json({
-            paginationModel:{
+            paginationModel: {
                 totalItems: Number(products.total_count),
                 itemsPerPage: limit,
                 currentPage: page,
-                CurrentPage:pageCount,
-                perPage:limit
+                CurrentPage: pageCount,
+                perPage: limit
             },
             products: products.res,
         });
@@ -88,13 +96,13 @@ const getSpecificProduct = async (req, res) => {
     const id = req.params.id;
 
     try {
-        const product = await getSpecificProductAdminQuery(id);
+        const product = await getSpecificProductVariantAdminQuery(id);
         if (!product) return res.status(404).json({ message: 'Product not found' });
 
         return res.status(200).json(product);
 
     } catch (error) {
-        // console.log(`Error occured to get specific Product :- ${error}`);
+        console.log(`Error occured to get specific Product :- ${error}`);
 
         return res.status(500).json({ message: 'Failed to retrieve product' });
     }
@@ -118,12 +126,11 @@ const getSpecificProductVariant = async (req, res) => {
 }
 
 const insertNewProduct = async (req, res) => {
-   
-    if (!req.body.name) return res.status(400).json({ message: "Please provide product name" });
-    if (!req.body.variants) return res.status(400).json({ message: "Please provide atleast a single variant details" });
 
+    if (!req.body.productName) return res.status(400).json({ message: "Please provide product name" });
+    if (!req.body.variants) return res.status(400).json({ message: "Please provide atleast a single variant details" });
     try {
-        
+
         await createProductService(req);
 
         res.status(201).json({ message: "Product Created" });
@@ -151,11 +158,11 @@ const insertNewProduct = async (req, res) => {
             })
         }
 
-        // if (error.message = "None of the provided variants exist in the database."){
-        //     return res.status(409).json({
-        //         message: error.message
-        //     })
-        // }
+        if (error.message = "None of the provided variants exist in the database."){
+            return res.status(404).json({
+                message: error.message
+            })
+        }
 
         if (error.message === "To publish a product, all fields must be completed with minimum single image.") {
             return res.status(422).json({
@@ -169,11 +176,6 @@ const insertNewProduct = async (req, res) => {
 };
 
 const updateProduct = async (req, res) => {
-
-    const PRODUCT_UPDATABLE_FEILDS = [
-        'name',
-        'type',
-    ];
 
     const id = req.params.id;
     if (!req.body || Object.keys(req.body).length === 0) {
@@ -215,27 +217,19 @@ const updateProduct = async (req, res) => {
 }
 
 const updateProductVariants = async (req, res) => {
+
     
+
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ message: "Please provide fields to update" });
+    }
+    if (req.body.id) {
+        return res.status(400).json({ message: "Cannot update product variant id" });
+    }
     try {
-        const id = req.params.id;
-        if (!req.body || Object.keys(req.body).length === 0) {
-            return res.status(400).json({ message: "Please provide fields to update" });
-        }
-        if (req.body.id) {
-            return res.status(400).json({ message: "Cannot update product variant id" });
-        }
-        const field = Object.keys(req.body).filter(key => UPDATABLE_FEILDS.includes(key));
-
-        if (field.length === 0) {
-            return res.status(400).json({ message: "No valid fields to update" });
-        }
-        const setClause = field.map((key, i) => `${key} = $${i + 1}`);
-        setClause.push(`updated_at = NOW()`);
-        const value = field.map(key => req.body[key]);
-
-        const updatedProductVariant = await updateProductVariantsQuery(id, setClause, value);
-        if (!updatedProductVariant) return res.status(404).json({ message: "Product Variant not found" });
-        return res.status(200).json({ message: "Product Variant Updated Successfully", updatedProductVariant });
+        
+        await updateProductService(req)
+        return res.status(200).json({ message: "Product Variant Updated Successfully",});
 
     } catch (error) {
         if (error.constraint === "unique_sku") {
@@ -423,8 +417,8 @@ const getDeletedProducts = async (req, res) => {
         if (page > totalpages && Number(products.total_count) !== 0) {
             return res.status(400).json({ message: `Page number exceeds total ${totalpages} pages available` });
         }
-        if(!products || products.res.length === 0) {
-            return  res.status(404).json({ message: 'No deleted products found' });
+        if (!products || products.res.length === 0) {
+            return res.status(404).json({ message: 'No deleted products found' });
         }
         res.status(200).json({
             page,

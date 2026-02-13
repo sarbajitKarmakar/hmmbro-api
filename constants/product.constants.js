@@ -1,8 +1,12 @@
 export const UPDATABLE_FEILDS = [
-        'product_id',
-        'variant_id',
+        'variant_ml',
         'price',
         'stock',
         'ispublish',
         'img_urls'
+    ];
+
+export const PRODUCT_UPDATABLE_FEILDS = [
+        'productName',
+        'type',
     ];

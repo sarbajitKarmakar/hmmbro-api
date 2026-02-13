@@ -352,18 +352,15 @@ return {res: res.rows, total_count: count.rows[0].total_count};
 }
 
 const getSpecificProductVariantAdminQuery = async (id) => {
-  const res = await pool.query(`
+  const prod = await pool.query(`
 SELECT 
-p.id as product_id,
-pv.id as productVariant_id,
-v.id as variant_id,
+pv.id as id,
 pv.sku,
 p.name,
 v.variant_ml as ml,
 p.type,
 pv.price,
 pv.stock,
-pv.img_urls,
 pv.published_at,
 pv.created_at,
 pv.updated_at,
@@ -373,29 +370,54 @@ LEFT JOIN product_variants pv ON pv.product_id = p.id
 LEFT JOIN variant v ON pv.variant_id = v.id
 WHERE pv.id = $1
 `, [id]);
-  return res.rows[0];
+const img = await pool.query(`
+  SELECT id, image_url, image_id, isprimary from product_images where product_variant_id = $1
+  `,[prod.rows[0].id]);
+
+  return {data: {...prod.rows[0], images:img.rows}};
 }
 
 
-const insertNewProductQuery = async (client, name, type, productCode) => {
+const insertNewProductQuery = async (client, name, type, description, productCode) => {
   const res = await client.query(
-    `INSERT INTO products (name, type , product_code)
-                   VALUES ($1, $2, $3)
+    `INSERT INTO products (name, type , description, product_code)
+                   VALUES ($1, $2, $3, $4)
                    RETURNING *`,
-    [name, type, productCode]
+    [name, type, description, productCode]
   );
 
   return res.rows[0];
 }
 
 const insertNewProductVariant = async (client, payload) => {
-  const queryText = payload.map((_,i) => `($${i*6+1},$${i*6+2},$${i*6+3},$${i*6+4},$${i*6+5},$${i*6+6})`)
-  .join(', ')
+  const queryText = payload.map((_,i) => `
+  (
+  $${i*9+1},
+  $${i*9+2},
+  $${i*9+3},
+  $${i*9+4},
+  $${i*9+5},
+  $${i*9+6},
+  $${i*9+7},
+  $${i*9+8},
+  $${i*9+9}
+  )`)
+  .join(', ');
   // productId, variant.variant_id, variant.price, variant.stock, sku, slug
   const res =  await client.query(
     `INSERT INTO 
     product_variants 
-    (product_id, variant_id, price, stock, sku, slug)
+    (
+    product_id, 
+    variant_id, 
+    price, 
+    stock, 
+    sku, 
+    slug,
+    seoTitle, 
+    seoDescription, 
+    seoTags
+    )
     VALUES ${queryText} RETURNING id`,
     payload.flat()
   );
@@ -543,6 +565,13 @@ export const productImageUploadQuery = async (client, imgpayload, queryText) =>{
     VALUES
     ${queryText}
   `, imgpayload)
+}
+
+export const deleteImageQuery = async (client, imageIds, id) =>{
+  const result = await client.query(`
+    DELETE FROM product_images WHERE id = ANY($1::int[]) AND product_variant_id = $2  RETURNING *
+    `,[imageIds, id]);
+  return result.rows;
 }
 //-------------------operation on products-------------------
 
