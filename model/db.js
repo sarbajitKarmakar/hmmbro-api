@@ -221,7 +221,7 @@ WHERE role = 'user'
 ORDER BY registered_at DESC;
 `, [`%${value}%`, limit, offset]);
 
-const total_count = await pool.query(`
+  const total_count = await pool.query(`
     SELECT COUNT(*) AS total_count
     FROM users
     WHERE role = 'user'
@@ -320,7 +320,7 @@ export const getSpecificProductByNameQuery = async (name) => {
   return res.rows[0];
 }
 
-export const getAllProductVariantAdminQuery = async (limit, offset) =>{
+export const getAllProductVariantAdminQuery = async (limit, offset) => {
   const res = await pool.query(`
     SELECT 
 p.id as product_id,
@@ -344,11 +344,11 @@ LEFT JOIN variant v ON pv.variant_id = v.id
 LEFT JOIN product_images img on pv.id = img.product_variant_id
 WHERE img.isprimary = true AND pv.delete_at IS NULL
 LIMIT $1 OFFSET $2 `,
-[limit, offset]
-)
+    [limit, offset]
+  )
 
-const count = await pool.query(`SELECT COUNT(*) AS total_count FROM product_variants WHERE delete_at IS NULL;`);
-return {res: res.rows, total_count: count.rows[0].total_count};
+  const count = await pool.query(`SELECT COUNT(*) AS total_count FROM product_variants WHERE delete_at IS NULL;`);
+  return { res: res.rows, total_count: count.rows[0].total_count };
 }
 
 const getSpecificProductVariantAdminQuery = async (id) => {
@@ -370,11 +370,11 @@ LEFT JOIN product_variants pv ON pv.product_id = p.id
 LEFT JOIN variant v ON pv.variant_id = v.id
 WHERE pv.id = $1
 `, [id]);
-const img = await pool.query(`
+  const img = await pool.query(`
   SELECT id, image_url, image_id, isprimary from product_images where product_variant_id = $1
-  `,[prod.rows[0].id]);
+  `, [prod.rows[0].id]);
 
-  return {data: {...prod.rows[0], images:img.rows}};
+  return { data: { ...prod.rows[0], images: img.rows } };
 }
 
 
@@ -390,21 +390,21 @@ const insertNewProductQuery = async (client, name, type, description, productCod
 }
 
 const insertNewProductVariant = async (client, payload) => {
-  const queryText = payload.map((_,i) => `
+  const queryText = payload.map((_, i) => `
   (
-  $${i*9+1},
-  $${i*9+2},
-  $${i*9+3},
-  $${i*9+4},
-  $${i*9+5},
-  $${i*9+6},
-  $${i*9+7},
-  $${i*9+8},
-  $${i*9+9}
+  $${i * 9 + 1},
+  $${i * 9 + 2},
+  $${i * 9 + 3},
+  $${i * 9 + 4},
+  $${i * 9 + 5},
+  $${i * 9 + 6},
+  $${i * 9 + 7},
+  $${i * 9 + 8},
+  $${i * 9 + 9}
   )`)
-  .join(', ');
+    .join(', ');
   // productId, variant.variant_id, variant.price, variant.stock, sku, slug
-  const res =  await client.query(
+  const res = await client.query(
     `INSERT INTO 
     product_variants 
     (
@@ -546,7 +546,7 @@ export const getVariantDetails = async (client, variant_ml_arr) => {
   const res = await client.query(`
     SELECT * FROM variant WHERE variant_ml = ANY ($1)`, [variant_ml_arr]);
   return res.rows;
-} 
+}
 
 const getAllVariantsQuery = async () => {
   const res = await pool.query('SELECT * FROM variant;');
@@ -557,7 +557,7 @@ const createVariantQuery = async (variant_ml) => {
   await pool.query('INSERT INTO variant (variant_ml) VALUES ($1);', [variant_ml]);
 }
 
-export const productImageUploadQuery = async (client, imgpayload, queryText) =>{
+export const productImageUploadQuery = async (client, imgpayload, queryText) => {
   // productVariantId, result.url, result.publicId
   await client.query(`
     INSERT INTO product_images
@@ -567,11 +567,40 @@ export const productImageUploadQuery = async (client, imgpayload, queryText) =>{
   `, imgpayload)
 }
 
-export const deleteImageQuery = async (client, imageIds, id) =>{
+export const deleteImageQuery = async (client, imageIds, id) => {
   const result = await client.query(`
     DELETE FROM product_images WHERE id = ANY($1::int[]) AND product_variant_id = $2  RETURNING *
-    `,[imageIds, id]);
+    `, [imageIds, id]);
   return result.rows;
+}
+
+export const getProductVariantQueryToCheck = async (client, id) => {
+  const res = await client.query(`SELECT sku from product_variants WHERE id=$1`, [id]);
+  return res.rows;
+}
+
+export const makeImagePrimaryQuery = async (id, primary_existing_id) => {
+  await client.query(
+    `
+  UPDATE product_images
+  SET is_primary = CASE
+      WHEN id = $1 THEN true
+      ELSE false
+  END
+  WHERE product_variant_id = $2
+  `,
+    [primary_existing_id, id]
+  );
+
+}
+
+export const disprimaryAllImageQuery = async (client,id) =>{
+  await client.query(`
+    UPDATE product_images
+    SET is_primary = false
+    WHERE product_variant_id = $1
+    `,
+  [id])
 }
 //-------------------operation on products-------------------
 

@@ -232,6 +232,15 @@ const updateProductVariants = async (req, res) => {
         return res.status(200).json({ message: "Product Variant Updated Successfully",});
 
     } catch (error) {
+
+        if(error.message === "Product Variant not found"){
+            return res.status(404).json({ message: "Product Variant not found" });
+        }
+
+        if(error.message === "You must select a new primary image after deleting the current primary."){
+            return res.status(422).json({message: error.message})
+        }
+
         if (error.constraint === "unique_sku") {
             return res.status(409).json({
                 message: "SKU already exists. Please use a Unique SKU."
