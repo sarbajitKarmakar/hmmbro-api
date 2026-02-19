@@ -329,8 +329,6 @@ v.id as variant_id,
 pv.sku,
 p.name,
 v.variant_ml as ml,
-img.image_url,
-img.image_id,
 p.type,
 pv.price,
 pv.stock,
@@ -341,8 +339,6 @@ pv.delete_at
 FROM products p
 LEFT JOIN product_variants pv ON pv.product_id = p.id
 LEFT JOIN variant v ON pv.variant_id = v.id
-LEFT JOIN product_images img on pv.id = img.product_variant_id
-WHERE img.isprimary = true AND pv.delete_at IS NULL
 LIMIT $1 OFFSET $2 `,
     [limit, offset]
   )

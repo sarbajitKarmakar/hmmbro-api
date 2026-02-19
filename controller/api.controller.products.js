@@ -42,9 +42,8 @@ const getProducts = async (req, res) => {
 
     try {
 
-        const products = await getAllProductVariantAdminQuery(limit, offset)
-        const pageCount = Math.ceil(Number(products.total_count) / limit)
-        // console.log(pageCount)
+        const products = await getAllProductVariantAdminQuery(limit, offset);
+        const pageCount = Math.ceil(Number(products.total_count) / limit);
         res.status(200).json({
             paginationModel: {
                 currentpage: page,
